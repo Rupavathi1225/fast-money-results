@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Save } from "lucide-react";
+import { Save, Edit, Plus, X } from "lucide-react";
 
 interface PrelanderFormData {
   is_enabled: boolean;
@@ -21,6 +21,14 @@ interface PrelanderFormData {
   button_color: string;
   background_color: string;
   background_image_url: string;
+}
+
+interface ExistingPrelander {
+  id: string;
+  web_result_id: string;
+  headline_text: string;
+  is_enabled: boolean;
+  web_result_title?: string;
 }
 
 const defaultSettings: PrelanderFormData = {
@@ -39,13 +47,16 @@ const defaultSettings: PrelanderFormData = {
 const AdminPrelander = () => {
   const { toast } = useToast();
   const [webResults, setWebResults] = useState<WebResult[]>([]);
+  const [existingPrelanders, setExistingPrelanders] = useState<ExistingPrelander[]>([]);
   const [selectedResultId, setSelectedResultId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<PrelanderFormData>(defaultSettings);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    fetchWebResults();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -54,21 +65,38 @@ const AdminPrelander = () => {
     }
   }, [selectedResultId]);
 
-  const fetchWebResults = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch web results
+      const { data: wrData, error: wrError } = await supabase
         .from('web_results')
         .select('*')
         .order('web_result_page', { ascending: true })
         .order('display_order', { ascending: true });
 
-      if (error) throw error;
-      setWebResults(data as WebResult[]);
-      if (data && data.length > 0) {
-        setSelectedResultId(data[0].id);
-      }
+      if (wrError) throw wrError;
+      setWebResults(wrData as WebResult[]);
+
+      // Fetch existing prelanders
+      const { data: plData, error: plError } = await supabase
+        .from('prelander_settings')
+        .select('id, web_result_id, headline_text, is_enabled')
+        .order('created_at', { ascending: false });
+
+      if (plError) throw plError;
+
+      // Map prelanders with web result titles
+      const prelandersWithTitles = (plData || []).map(pl => {
+        const wr = wrData?.find(w => w.id === pl.web_result_id);
+        return {
+          ...pl,
+          web_result_title: wr?.title || 'Unknown'
+        };
+      });
+
+      setExistingPrelanders(prelandersWithTitles);
     } catch (error) {
-      console.error('Error fetching web results:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
@@ -98,22 +126,39 @@ const AdminPrelander = () => {
           background_color: d.background_color || defaultSettings.background_color,
           background_image_url: d.background_image_url || '',
         });
+        setIsEditing(true);
       } else {
         setSettings(defaultSettings);
+        setIsEditing(false);
       }
     } catch (error) {
       console.error('Error fetching prelander settings:', error);
     }
   };
 
+  const handleEdit = (webResultId: string) => {
+    setSelectedResultId(webResultId);
+    setShowForm(true);
+  };
+
+  const handleCreateNew = () => {
+    setSelectedResultId('');
+    setSettings(defaultSettings);
+    setIsEditing(false);
+    setShowForm(true);
+  };
+
   const handleSave = async () => {
-    if (!selectedResultId) return;
+    if (!selectedResultId) {
+      toast({ title: "Error", description: "Please select a web result.", variant: "destructive" });
+      return;
+    }
 
     setSaving(true);
     try {
       const saveData = {
         web_result_id: selectedResultId,
-        is_enabled: true, // Auto-enable when saving
+        is_enabled: true,
         logo_url: settings.logo_url || null,
         main_image_url: settings.main_image_url || null,
         headline_text: settings.headline_text || 'Welcome',
@@ -151,6 +196,8 @@ const AdminPrelander = () => {
       }
 
       toast({ title: "Success", description: "Prelander settings saved and enabled." });
+      setShowForm(false);
+      fetchData(); // Refresh list
     } catch (error) {
       console.error('Error saving:', error);
       toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
@@ -158,6 +205,11 @@ const AdminPrelander = () => {
       setSaving(false);
     }
   };
+
+  // Get web results that don't have prelanders yet
+  const availableWebResults = webResults.filter(
+    wr => !existingPrelanders.some(pl => pl.web_result_id === wr.id) || selectedResultId === wr.id
+  );
 
   if (loading) {
     return (
@@ -169,131 +221,177 @@ const AdminPrelander = () => {
 
   return (
     <AdminLayout title="Pre-Landing Page Builder">
-      <div className="max-w-2xl space-y-6">
-        {/* Select Web Result */}
-        <div className="admin-card">
-          <Label>Select Web Result</Label>
-          <Select value={selectedResultId} onValueChange={setSelectedResultId}>
-            <SelectTrigger className="mt-2 admin-input">
-              <SelectValue placeholder="Select a web result" />
-            </SelectTrigger>
-            <SelectContent>
-              {webResults.map((result) => (
-                <SelectItem key={result.id} value={result.id}>
-                  [WR {result.web_result_page}, Pos {result.display_order}] {result.title}
-                </SelectItem>
+      <div className="space-y-6">
+        {/* Existing Prelanders List */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-foreground">Existing Pre-Landing Pages</h2>
+            <Button onClick={handleCreateNew} size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Create New
+            </Button>
+          </div>
+
+          {existingPrelanders.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No prelanders created yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {existingPrelanders.map((pl) => (
+                <div
+                  key={pl.id}
+                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
+                >
+                  <div>
+                    <p className="font-medium text-foreground">{pl.web_result_title}</p>
+                    <p className="text-sm text-muted-foreground">{pl.headline_text}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-1 rounded ${pl.is_enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                      {pl.is_enabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(pl.web_result_id)}>
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                  </div>
+                </div>
               ))}
-            </SelectContent>
-          </Select>
+            </div>
+          )}
         </div>
 
+        {/* Form (shown when creating/editing) */}
+        {showForm && (
+          <div className="bg-card border border-border rounded-lg p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">
+                {isEditing ? 'Edit Pre-Landing Page' : 'Create New Pre-Landing Page'}
+              </h2>
+              <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
 
-        {/* Edit Pre-Landing Page */}
-        <div className="admin-card space-y-4">
-          <h3 className="font-semibold text-primary border-b pb-2">Edit Pre-Landing Page</h3>
-          
-          {/* Logo URL */}
-          <div>
-            <Label>Logo URL</Label>
-            <Input
-              value={settings.logo_url}
-              onChange={(e) => setSettings({ ...settings, logo_url: e.target.value })}
-              className="mt-1 admin-input"
-              placeholder="https://example.com/logo.png"
-            />
-          </div>
+            {/* Select Web Result */}
+            <div>
+              <Label>Select Web Result</Label>
+              <Select value={selectedResultId} onValueChange={setSelectedResultId}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select a web result" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(isEditing ? webResults : availableWebResults).map((result) => (
+                    <SelectItem key={result.id} value={result.id}>
+                      [WR {result.web_result_page}, Pos {result.display_order}] {result.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Main Image URL */}
-          <div>
-            <Label>Main Image URL</Label>
-            <Input
-              value={settings.main_image_url}
-              onChange={(e) => setSettings({ ...settings, main_image_url: e.target.value })}
-              className="mt-1 admin-input"
-              placeholder="https://example.com/main-image.jpg"
-            />
-          </div>
-
-          {/* Headline */}
-          <div>
-            <Label>Headline</Label>
-            <Input
-              value={settings.headline_text}
-              onChange={(e) => setSettings({ ...settings, headline_text: e.target.value })}
-              className="mt-1 admin-input"
-              placeholder="Your headline text"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <Label>Description</Label>
-            <Textarea
-              value={settings.description_text}
-              onChange={(e) => setSettings({ ...settings, description_text: e.target.value })}
-              className="mt-1 admin-input"
-              placeholder="Describe what users will get..."
-              rows={3}
-            />
-          </div>
-
-          {/* Email Placeholder */}
-          <div>
-            <Label>Email Placeholder</Label>
-            <Input
-              value={settings.email_placeholder}
-              onChange={(e) => setSettings({ ...settings, email_placeholder: e.target.value })}
-              className="mt-1 admin-input"
-              placeholder="Enter your email"
-            />
-          </div>
-
-          {/* CTA Button Text */}
-          <div>
-            <Label>CTA Button Text</Label>
-            <Input
-              value={settings.button_text}
-              onChange={(e) => setSettings({ ...settings, button_text: e.target.value })}
-              className="mt-1 admin-input"
-              placeholder="Get Started"
-            />
-          </div>
-
-          {/* Background Color */}
-          <div>
-            <Label>Background Color</Label>
-            <div className="flex gap-2 mt-1">
+            {/* Logo URL */}
+            <div>
+              <Label>Logo URL</Label>
               <Input
-                type="color"
-                value={settings.background_color}
-                onChange={(e) => setSettings({ ...settings, background_color: e.target.value })}
-                className="h-10 w-16 p-1"
-              />
-              <Input
-                value={settings.background_color}
-                onChange={(e) => setSettings({ ...settings, background_color: e.target.value })}
-                className="admin-input flex-1"
-                placeholder="#0a0f1c"
+                value={settings.logo_url}
+                onChange={(e) => setSettings({ ...settings, logo_url: e.target.value })}
+                className="mt-1"
+                placeholder="https://example.com/logo.png"
               />
             </div>
-          </div>
 
-          {/* Background Image URL */}
-          <div>
-            <Label>Background Image URL (optional)</Label>
-            <Input
-              value={settings.background_image_url}
-              onChange={(e) => setSettings({ ...settings, background_image_url: e.target.value })}
-              className="mt-1 admin-input"
-              placeholder="https://example.com/background.jpg"
-            />
-          </div>
-        </div>
+            {/* Main Image URL */}
+            <div>
+              <Label>Main Image URL</Label>
+              <Input
+                value={settings.main_image_url}
+                onChange={(e) => setSettings({ ...settings, main_image_url: e.target.value })}
+                className="mt-1"
+                placeholder="https://example.com/main-image.jpg"
+              />
+            </div>
 
-        <Button onClick={handleSave} disabled={saving} className="w-full">
-          <Save className="w-4 h-4 mr-2" />
-          {saving ? 'Saving...' : 'Update Pre-Landing Page'}
-        </Button>
+            {/* Headline */}
+            <div>
+              <Label>Headline</Label>
+              <Input
+                value={settings.headline_text}
+                onChange={(e) => setSettings({ ...settings, headline_text: e.target.value })}
+                className="mt-1"
+                placeholder="Your headline text"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <Label>Description</Label>
+              <Textarea
+                value={settings.description_text}
+                onChange={(e) => setSettings({ ...settings, description_text: e.target.value })}
+                className="mt-1"
+                placeholder="Describe what users will get..."
+                rows={3}
+              />
+            </div>
+
+            {/* Email Placeholder */}
+            <div>
+              <Label>Email Placeholder</Label>
+              <Input
+                value={settings.email_placeholder}
+                onChange={(e) => setSettings({ ...settings, email_placeholder: e.target.value })}
+                className="mt-1"
+                placeholder="Enter your email"
+              />
+            </div>
+
+            {/* CTA Button Text */}
+            <div>
+              <Label>CTA Button Text</Label>
+              <Input
+                value={settings.button_text}
+                onChange={(e) => setSettings({ ...settings, button_text: e.target.value })}
+                className="mt-1"
+                placeholder="Get Started"
+              />
+            </div>
+
+            {/* Background Color */}
+            <div>
+              <Label>Background Color</Label>
+              <div className="flex gap-2 mt-1">
+                <Input
+                  type="color"
+                  value={settings.background_color}
+                  onChange={(e) => setSettings({ ...settings, background_color: e.target.value })}
+                  className="h-10 w-16 p-1"
+                />
+                <Input
+                  value={settings.background_color}
+                  onChange={(e) => setSettings({ ...settings, background_color: e.target.value })}
+                  className="flex-1"
+                  placeholder="#0a0f1c"
+                />
+              </div>
+            </div>
+
+            {/* Background Image URL */}
+            <div>
+              <Label>Background Image URL (optional)</Label>
+              <Input
+                value={settings.background_image_url}
+                onChange={(e) => setSettings({ ...settings, background_image_url: e.target.value })}
+                className="mt-1"
+                placeholder="https://example.com/background.jpg"
+              />
+            </div>
+
+            <Button onClick={handleSave} disabled={saving} className="w-full">
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? 'Saving...' : isEditing ? 'Update Pre-Landing Page' : 'Create Pre-Landing Page'}
+            </Button>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
