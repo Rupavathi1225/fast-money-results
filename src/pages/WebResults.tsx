@@ -111,23 +111,23 @@ const WebResults = () => {
               <p className="text-muted-foreground">No results found for this page.</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-6">
               {results.map((result, index) => (
                 <div
                   key={result.id}
                   onClick={() => handleResultClick(result, index)}
-                  className="web-result-item animate-fade-in"
+                  className="flex items-start gap-4 py-3 cursor-pointer group animate-fade-in"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
-                  <div className="flex-shrink-0 mt-1">
+                  <div className="flex-shrink-0">
                     {getLogoDisplay(result)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
                       <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{index + 1}</span>
                       <ExternalLink className="w-3 h-3" />
                     </div>
-                    <h3 className="text-lg font-medium text-primary hover:underline cursor-pointer">
+                    <h3 className="text-lg font-medium text-primary group-hover:underline">
                       {result.title}
                     </h3>
                     {result.description && (
