@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Save } from "lucide-react";
@@ -114,7 +113,7 @@ const AdminPrelander = () => {
     try {
       const saveData = {
         web_result_id: selectedResultId,
-        is_enabled: Boolean(settings.is_enabled),
+        is_enabled: true, // Auto-enable when saving
         logo_url: settings.logo_url || null,
         main_image_url: settings.main_image_url || null,
         headline_text: settings.headline_text || 'Welcome',
@@ -151,7 +150,7 @@ const AdminPrelander = () => {
         if (error) throw error;
       }
 
-      toast({ title: "Success", description: "Prelander settings saved successfully." });
+      toast({ title: "Success", description: "Prelander settings saved and enabled." });
     } catch (error) {
       console.error('Error saving:', error);
       toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
@@ -188,21 +187,6 @@ const AdminPrelander = () => {
           </Select>
         </div>
 
-        {/* Enable Toggle */}
-        <div className="admin-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Enable Pre-Landing Page</Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                When enabled, users will see the pre-landing page before redirecting
-              </p>
-            </div>
-            <Switch
-              checked={settings.is_enabled === true}
-              onCheckedChange={(checked) => setSettings({ ...settings, is_enabled: checked })}
-            />
-          </div>
-        </div>
 
         {/* Edit Pre-Landing Page */}
         <div className="admin-card space-y-4">
