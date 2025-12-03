@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Eye } from "lucide-react";
+import { Save } from "lucide-react";
 
 const AdminPrelander = () => {
   const { toast } = useToast();
@@ -76,7 +76,6 @@ const AdminPrelander = () => {
       if (data) {
         setSettings(data as PrelanderSettings);
       } else {
-        // Reset to defaults
         setSettings({
           is_enabled: false,
           headline_text: 'Welcome to Our Platform',
@@ -119,7 +118,6 @@ const AdminPrelander = () => {
         updated_at: new Date().toISOString(),
       };
 
-      // Check if exists
       const { data: existing } = await supabase
         .from('prelander_settings')
         .select('id')
@@ -148,8 +146,6 @@ const AdminPrelander = () => {
     }
   };
 
-  const selectedResult = webResults.find(r => r.id === selectedResultId);
-
   if (loading) {
     return (
       <AdminLayout title="Prelander Settings">
@@ -160,232 +156,188 @@ const AdminPrelander = () => {
 
   return (
     <AdminLayout title="Prelander Settings">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Settings Form */}
-        <div className="space-y-6">
-          {/* Select Web Result */}
-          <div className="admin-card">
-            <Label>Select Web Result</Label>
-            <Select value={selectedResultId} onValueChange={setSelectedResultId}>
-              <SelectTrigger className="mt-2 admin-input">
-                <SelectValue placeholder="Select a web result" />
-              </SelectTrigger>
-              <SelectContent>
-                {webResults.map((result) => (
-                  <SelectItem key={result.id} value={result.id}>
-                    [wr={result.web_result_page}] {result.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="max-w-2xl space-y-6">
+        {/* Select Web Result */}
+        <div className="admin-card">
+          <Label>Select Web Result</Label>
+          <Select value={selectedResultId} onValueChange={setSelectedResultId}>
+            <SelectTrigger className="mt-2 admin-input">
+              <SelectValue placeholder="Select a web result" />
+            </SelectTrigger>
+            <SelectContent>
+              {webResults.map((result) => (
+                <SelectItem key={result.id} value={result.id}>
+                  [wr={result.web_result_page}] {result.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-          {/* Enable Toggle */}
-          <div className="admin-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Enable Prelander</Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  When enabled, users will see the prelander before redirecting
-                </p>
-              </div>
-              <Switch
-                checked={settings.is_enabled}
-                onCheckedChange={(checked) => setSettings({ ...settings, is_enabled: checked })}
-              />
-            </div>
-          </div>
-
-          {/* Headline */}
-          <div className="admin-card space-y-4">
-            <h3 className="font-semibold text-primary">Headline</h3>
-            
+        {/* Enable Toggle */}
+        <div className="admin-card">
+          <div className="flex items-center justify-between">
             <div>
-              <Label>Headline Text</Label>
+              <Label>Enable Prelander</Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                When enabled, users will see the prelander before redirecting
+              </p>
+            </div>
+            <Switch
+              checked={settings.is_enabled}
+              onCheckedChange={(checked) => setSettings({ ...settings, is_enabled: checked })}
+            />
+          </div>
+        </div>
+
+        {/* Headline */}
+        <div className="admin-card space-y-4">
+          <h3 className="font-semibold text-primary">Headline</h3>
+          
+          <div>
+            <Label>Headline Text</Label>
+            <Input
+              value={settings.headline_text}
+              onChange={(e) => setSettings({ ...settings, headline_text: e.target.value })}
+              className="mt-1 admin-input"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label>Font Size (px)</Label>
               <Input
-                value={settings.headline_text}
-                onChange={(e) => setSettings({ ...settings, headline_text: e.target.value })}
+                type="number"
+                value={settings.headline_font_size}
+                onChange={(e) => setSettings({ ...settings, headline_font_size: parseInt(e.target.value) || 48 })}
                 className="mt-1 admin-input"
               />
             </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label>Font Size (px)</Label>
-                <Input
-                  type="number"
-                  value={settings.headline_font_size}
-                  onChange={(e) => setSettings({ ...settings, headline_font_size: parseInt(e.target.value) || 48 })}
-                  className="mt-1 admin-input"
-                />
-              </div>
-              <div>
-                <Label>Color</Label>
-                <Input
-                  type="color"
-                  value={settings.headline_color}
-                  onChange={(e) => setSettings({ ...settings, headline_color: e.target.value })}
-                  className="mt-1 h-10"
-                />
-              </div>
-              <div>
-                <Label>Alignment</Label>
-                <Select 
-                  value={settings.headline_alignment} 
-                  onValueChange={(v) => setSettings({ ...settings, headline_alignment: v })}
-                >
-                  <SelectTrigger className="mt-1 admin-input">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="left">Left</SelectItem>
-                    <SelectItem value="center">Center</SelectItem>
-                    <SelectItem value="right">Right</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="admin-card space-y-4">
-            <h3 className="font-semibold text-primary">Description</h3>
-            
             <div>
-              <Label>Description Text</Label>
-              <Textarea
-                value={settings.description_text}
-                onChange={(e) => setSettings({ ...settings, description_text: e.target.value })}
-                className="mt-1 admin-input"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Font Size (px)</Label>
-                <Input
-                  type="number"
-                  value={settings.description_font_size}
-                  onChange={(e) => setSettings({ ...settings, description_font_size: parseInt(e.target.value) || 18 })}
-                  className="mt-1 admin-input"
-                />
-              </div>
-              <div>
-                <Label>Color</Label>
-                <Input
-                  type="color"
-                  value={settings.description_color}
-                  onChange={(e) => setSettings({ ...settings, description_color: e.target.value })}
-                  className="mt-1 h-10"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Call-to-Action Button */}
-          <div className="admin-card space-y-4">
-            <h3 className="font-semibold text-primary">Call-to-Action Button</h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Button Text</Label>
-                <Input
-                  value={settings.button_text}
-                  onChange={(e) => setSettings({ ...settings, button_text: e.target.value })}
-                  className="mt-1 admin-input"
-                />
-              </div>
-              <div>
-                <Label>Button Color</Label>
-                <Input
-                  type="color"
-                  value={settings.button_color}
-                  onChange={(e) => setSettings({ ...settings, button_color: e.target.value })}
-                  className="mt-1 h-10"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Background */}
-          <div className="admin-card space-y-4">
-            <h3 className="font-semibold text-primary">Background</h3>
-            
-            <div>
-              <Label>Background Color</Label>
+              <Label>Color</Label>
               <Input
                 type="color"
-                value={settings.background_color}
-                onChange={(e) => setSettings({ ...settings, background_color: e.target.value })}
-                className="mt-1 h-10 w-full"
+                value={settings.headline_color}
+                onChange={(e) => setSettings({ ...settings, headline_color: e.target.value })}
+                className="mt-1 h-10"
               />
             </div>
-
             <div>
-              <Label>Background Image (Optional)</Label>
+              <Label>Alignment</Label>
+              <Select 
+                value={settings.headline_alignment} 
+                onValueChange={(v) => setSettings({ ...settings, headline_alignment: v })}
+              >
+                <SelectTrigger className="mt-1 admin-input">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">Left</SelectItem>
+                  <SelectItem value="center">Center</SelectItem>
+                  <SelectItem value="right">Right</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Description */}
+        <div className="admin-card space-y-4">
+          <h3 className="font-semibold text-primary">Description</h3>
+          
+          <div>
+            <Label>Description Text</Label>
+            <Textarea
+              value={settings.description_text}
+              onChange={(e) => setSettings({ ...settings, description_text: e.target.value })}
+              className="mt-1 admin-input"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Font Size (px)</Label>
               <Input
-                value={settings.background_image_url || ''}
-                onChange={(e) => setSettings({ ...settings, background_image_url: e.target.value })}
+                type="number"
+                value={settings.description_font_size}
+                onChange={(e) => setSettings({ ...settings, description_font_size: parseInt(e.target.value) || 18 })}
                 className="mt-1 admin-input"
-                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+            <div>
+              <Label>Color</Label>
+              <Input
+                type="color"
+                value={settings.description_color}
+                onChange={(e) => setSettings({ ...settings, description_color: e.target.value })}
+                className="mt-1 h-10"
               />
             </div>
           </div>
-
-          <Button onClick={handleSave} disabled={saving} className="w-full">
-            <Save className="w-4 h-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Page Settings'}
-          </Button>
         </div>
 
-        {/* Preview */}
-        <div className="admin-card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-primary flex items-center gap-2">
-              <Eye className="w-4 h-4" /> Preview
-            </h3>
-            <span className="text-xs text-muted-foreground">
-              {selectedResult?.title}
-            </span>
-          </div>
+        {/* Email Field Label */}
+        <div className="admin-card space-y-4">
+          <h3 className="font-semibold text-primary">Email Field</h3>
+          <p className="text-sm text-muted-foreground">
+            The prelander page includes an email input field. Users must enter their email before being redirected to the destination.
+          </p>
+        </div>
+
+        {/* Call-to-Action Button */}
+        <div className="admin-card space-y-4">
+          <h3 className="font-semibold text-primary">Call-to-Action Button</h3>
           
-          <div 
-            className="rounded-lg overflow-hidden aspect-video flex items-center justify-center p-8"
-            style={{ 
-              backgroundColor: settings.background_color,
-              backgroundImage: settings.background_image_url ? `url(${settings.background_image_url})` : undefined,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          >
-            <div className="text-center space-y-4 max-w-md">
-              <h1
-                style={{
-                  fontSize: `${Math.min(settings.headline_font_size || 48, 32)}px`,
-                  color: settings.headline_color,
-                  textAlign: settings.headline_alignment as any,
-                }}
-                className="font-bold leading-tight"
-              >
-                {settings.headline_text}
-              </h1>
-              <p
-                style={{
-                  fontSize: `${Math.min(settings.description_font_size || 18, 14)}px`,
-                  color: settings.description_color,
-                }}
-              >
-                {settings.description_text}
-              </p>
-              <div 
-                className="inline-block px-6 py-2 rounded text-white text-sm font-semibold"
-                style={{ backgroundColor: settings.button_color }}
-              >
-                {settings.button_text}
-              </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Button Text</Label>
+              <Input
+                value={settings.button_text}
+                onChange={(e) => setSettings({ ...settings, button_text: e.target.value })}
+                className="mt-1 admin-input"
+              />
+            </div>
+            <div>
+              <Label>Button Color</Label>
+              <Input
+                type="color"
+                value={settings.button_color}
+                onChange={(e) => setSettings({ ...settings, button_color: e.target.value })}
+                className="mt-1 h-10"
+              />
             </div>
           </div>
         </div>
+
+        {/* Background */}
+        <div className="admin-card space-y-4">
+          <h3 className="font-semibold text-primary">Background</h3>
+          
+          <div>
+            <Label>Background Color</Label>
+            <Input
+              type="color"
+              value={settings.background_color}
+              onChange={(e) => setSettings({ ...settings, background_color: e.target.value })}
+              className="mt-1 h-10 w-full"
+            />
+          </div>
+
+          <div>
+            <Label>Background Image (Optional)</Label>
+            <Input
+              value={settings.background_image_url || ''}
+              onChange={(e) => setSettings({ ...settings, background_image_url: e.target.value })}
+              className="mt-1 admin-input"
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
+        </div>
+
+        <Button onClick={handleSave} disabled={saving} className="w-full">
+          <Save className="w-4 h-4 mr-2" />
+          {saving ? 'Saving...' : 'Save Page Settings'}
+        </Button>
       </div>
     </AdminLayout>
   );
