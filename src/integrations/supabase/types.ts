@@ -14,7 +14,194 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      landing_settings: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          site_name: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          site_name?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          site_name?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      link_tracking: {
+        Row: {
+          clicked_at: string
+          country: string | null
+          device_type: string | null
+          id: string
+          ip_address: string | null
+          link_id: number
+          referrer: string | null
+          session_id: string
+          user_agent: string | null
+          web_result_id: string | null
+        }
+        Insert: {
+          clicked_at?: string
+          country?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          link_id: number
+          referrer?: string | null
+          session_id: string
+          user_agent?: string | null
+          web_result_id?: string | null
+        }
+        Update: {
+          clicked_at?: string
+          country?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          link_id?: number
+          referrer?: string | null
+          session_id?: string
+          user_agent?: string | null
+          web_result_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_tracking_web_result_id_fkey"
+            columns: ["web_result_id"]
+            isOneToOne: false
+            referencedRelation: "web_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      related_searches: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          position: number
+          search_text: string
+          title: string
+          updated_at: string
+          web_result_page: number
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          position?: number
+          search_text: string
+          title: string
+          updated_at?: string
+          web_result_page?: number
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          position?: number
+          search_text?: string
+          title?: string
+          updated_at?: string
+          web_result_page?: number
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          country: string | null
+          device_type: string | null
+          id: string
+          ip_address: string | null
+          last_activity: string
+          session_id: string
+          started_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          country?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          last_activity?: string
+          session_id: string
+          started_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          country?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          last_activity?: string
+          session_id?: string
+          started_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      web_results: {
+        Row: {
+          country_permissions: string[] | null
+          created_at: string
+          description: string | null
+          display_order: number
+          fallback_link: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          original_link: string
+          title: string
+          updated_at: string
+          web_result_page: number
+        }
+        Insert: {
+          country_permissions?: string[] | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          fallback_link?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          original_link: string
+          title: string
+          updated_at?: string
+          web_result_page?: number
+        }
+        Update: {
+          country_permissions?: string[] | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          fallback_link?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          original_link?: string
+          title?: string
+          updated_at?: string
+          web_result_page?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
