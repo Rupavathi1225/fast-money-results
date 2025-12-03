@@ -69,7 +69,7 @@ const WebResultsInline = ({ wrPage }: { wrPage: number }) => {
 
   const handleResultClick = async (result: WebResult, index: number) => {
     await trackClick(index + 1, result.id, window.location.href);
-    window.open(`/lid=${index + 1}?rid=${result.id}`, '_blank');
+    window.location.href = `/link/${index + 1}?rid=${result.id}`;
   };
 
   const getLogoDisplay = (result: WebResult) => {
@@ -138,7 +138,7 @@ const WebResultsInline = ({ wrPage }: { wrPage: number }) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                      <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/lid={index + 1}</span>
+                      <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{index + 1}</span>
                       <ExternalLink className="w-3 h-3" />
                     </div>
                     <h3 className="text-lg font-medium text-primary hover:underline cursor-pointer">

@@ -25,7 +25,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/landing" element={<Landing />} />
-          <Route path="/lid=:linkId" element={<LinkRedirect />} />
+          <Route path="/link/:linkId" element={<LinkRedirect />} />
           <Route path="/prelander" element={<Prelander />} />
           <Route path="/admin" element={<AdminLanding />} />
           <Route path="/admin/categories" element={<AdminCategories />} />
