@@ -1,20 +1,21 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult, LandingSettings } from "@/types/database";
 import { trackClick } from "@/lib/tracking";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
 const WebResults = () => {
-  const [searchParams] = useSearchParams();
-  const wrPage = parseInt(searchParams.get('wr') || '1');
+  const { wrPage } = useParams();
+  const pageNumber = parseInt(wrPage || '1');
   const [results, setResults] = useState<WebResult[]>([]);
   const [settings, setSettings] = useState<LandingSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    document.title = `Web Results - Page ${pageNumber}`;
     fetchData();
-  }, [wrPage]);
+  }, [pageNumber]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -24,7 +25,7 @@ const WebResults = () => {
         supabase
           .from('web_results')
           .select('*')
-          .eq('web_result_page', wrPage)
+          .eq('web_result_page', pageNumber)
           .eq('is_active', true)
           .order('display_order', { ascending: true }),
       ]);
@@ -43,11 +44,8 @@ const WebResults = () => {
   };
 
   const handleResultClick = async (result: WebResult, index: number) => {
-    // Track the click
     await trackClick(index + 1, result.id, window.location.href);
-    
-    // Navigate to the link redirect page
-    window.location.href = `/lid=${index + 1}?rid=${result.id}`;
+    window.location.href = `/link/${index + 1}?rid=${result.id}`;
   };
 
   const getLogoDisplay = (result: WebResult) => {
@@ -107,9 +105,6 @@ const WebResults = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-sm text-muted-foreground mb-8">
-            Web Results - Page {wrPage}
-          </h2>
 
           {results.length === 0 ? (
             <div className="text-center py-12">
@@ -129,7 +124,7 @@ const WebResults = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                      <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/lid={index + 1}</span>
+                      <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{index + 1}</span>
                       <ExternalLink className="w-3 h-3" />
                     </div>
                     <h3 className="text-lg font-medium text-primary hover:underline cursor-pointer">
@@ -146,10 +141,9 @@ const WebResults = () => {
             </div>
           )}
 
-          {/* Pagination hint */}
           <div className="mt-12 pt-6 border-t border-border/30">
             <p className="text-sm text-muted-foreground text-center">
-              Showing results from page {wrPage}
+              Showing results from page {pageNumber}
             </p>
           </div>
         </div>

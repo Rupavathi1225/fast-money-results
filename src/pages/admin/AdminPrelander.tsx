@@ -276,12 +276,21 @@ const AdminPrelander = () => {
           </div>
         </div>
 
-        {/* Email Field Label */}
+        {/* Email Field */}
         <div className="admin-card space-y-4">
           <h3 className="font-semibold text-primary">Email Field</h3>
-          <p className="text-sm text-muted-foreground">
-            The prelander page includes an email input field. Users must enter their email before being redirected to the destination.
+          <p className="text-sm text-muted-foreground mb-3">
+            Users must enter their email before being redirected to the destination.
           </p>
+          <div>
+            <Label>Email Input Preview</Label>
+            <Input
+              type="email"
+              placeholder="Enter your email"
+              className="mt-1 admin-input"
+              disabled
+            />
+          </div>
         </div>
 
         {/* Call-to-Action Button */}
