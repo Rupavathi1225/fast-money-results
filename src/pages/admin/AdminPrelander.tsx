@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { WebResult } from "@/types/database";
+import { WebResult, RelatedSearch } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Edit, Plus, X } from "lucide-react";
+import { Save, Edit, Plus, X, ExternalLink } from "lucide-react";
 
 interface PrelanderFormData {
   is_enabled: boolean;
@@ -29,6 +28,7 @@ interface ExistingPrelander {
   headline_text: string;
   is_enabled: boolean;
   web_result_title?: string;
+  web_result_page?: number;
 }
 
 const defaultSettings: PrelanderFormData = {
@@ -47,6 +47,7 @@ const defaultSettings: PrelanderFormData = {
 const AdminPrelander = () => {
   const { toast } = useToast();
   const [webResults, setWebResults] = useState<WebResult[]>([]);
+  const [relatedSearches, setRelatedSearches] = useState<RelatedSearch[]>([]);
   const [existingPrelanders, setExistingPrelanders] = useState<ExistingPrelander[]>([]);
   const [selectedResultId, setSelectedResultId] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -77,6 +78,15 @@ const AdminPrelander = () => {
       if (wrError) throw wrError;
       setWebResults(wrData as WebResult[]);
 
+      // Fetch related searches
+      const { data: rsData, error: rsError } = await supabase
+        .from('related_searches')
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (rsError) throw rsError;
+      setRelatedSearches(rsData as RelatedSearch[]);
+
       // Fetch existing prelanders
       const { data: plData, error: plError } = await supabase
         .from('prelander_settings')
@@ -90,7 +100,8 @@ const AdminPrelander = () => {
         const wr = wrData?.find(w => w.id === pl.web_result_id);
         return {
           ...pl,
-          web_result_title: wr?.title || 'Unknown'
+          web_result_title: wr?.title || 'Unknown',
+          web_result_page: wr?.web_result_page
         };
       });
 
@@ -101,6 +112,19 @@ const AdminPrelander = () => {
       setLoading(false);
     }
   };
+
+  // Get related search name for a web result page
+  const getRelatedSearchForPage = (pageNum: number) => {
+    return relatedSearches.find(rs => rs.web_result_page === pageNum);
+  };
+
+  // Group web results by page (related search)
+  const groupedWebResults = webResults.reduce((acc, wr) => {
+    const page = wr.web_result_page;
+    if (!acc[page]) acc[page] = [];
+    acc[page].push(wr);
+    return acc;
+  }, {} as Record<number, WebResult[]>);
 
   const fetchPrelanderSettings = async () => {
     try {
@@ -206,11 +230,6 @@ const AdminPrelander = () => {
     }
   };
 
-  // Get web results that don't have prelanders yet
-  const availableWebResults = webResults.filter(
-    wr => !existingPrelanders.some(pl => pl.web_result_id === wr.id) || selectedResultId === wr.id
-  );
-
   if (loading) {
     return (
       <AdminLayout title="Pre-Landing Page Builder">
@@ -272,21 +291,96 @@ const AdminPrelander = () => {
               </Button>
             </div>
 
-            {/* Select Web Result */}
+            {/* Select Web Result - Google Style UI */}
             <div>
-              <Label>Select Web Result</Label>
-              <Select value={selectedResultId} onValueChange={setSelectedResultId}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Select a web result" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(isEditing ? webResults : availableWebResults).map((result) => (
-                    <SelectItem key={result.id} value={result.id}>
-                      [WR {result.web_result_page}, Pos {result.display_order}] {result.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="mb-3 block">Select Web Result</Label>
+              <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+                {Object.entries(groupedWebResults).map(([pageNum, results]) => {
+                  const relatedSearch = getRelatedSearchForPage(Number(pageNum));
+                  const availableResults = isEditing 
+                    ? results 
+                    : results.filter(wr => !existingPrelanders.some(pl => pl.web_result_id === wr.id) || selectedResultId === wr.id);
+                  
+                  if (availableResults.length === 0) return null;
+                  
+                  return (
+                    <div key={pageNum} className="space-y-3">
+                      {/* Related Search Header */}
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-muted-foreground">Related Search {pageNum}:</span>
+                        <span className="font-medium text-primary">
+                          {relatedSearch?.title || `Page ${pageNum}`}
+                        </span>
+                      </div>
+                      
+                      {/* Web Results for this Related Search */}
+                      <div className="space-y-2 pl-4 border-l-2 border-border">
+                        {availableResults.map((result) => {
+                          const isSelected = selectedResultId === result.id;
+                          let domain = 'fastmoney.com';
+                          try {
+                            if (result.original_link) {
+                              domain = new URL(result.original_link).hostname;
+                            }
+                          } catch {
+                            domain = 'fastmoney.com';
+                          }
+                          
+                          return (
+                            <div
+                              key={result.id}
+                              onClick={() => setSelectedResultId(result.id)}
+                              className={`cursor-pointer p-3 rounded-lg transition-all ${
+                                isSelected 
+                                  ? 'bg-primary/10 border border-primary/50' 
+                                  : 'bg-muted/30 border border-transparent hover:bg-muted/50'
+                              }`}
+                            >
+                              {/* Domain and URL row */}
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                                {result.logo_url ? (
+                                  <img 
+                                    src={result.logo_url} 
+                                    alt="" 
+                                    className="w-4 h-4 rounded"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="w-4 h-4 rounded bg-primary/20 flex items-center justify-center text-[10px] text-primary font-bold">
+                                    {result.title.charAt(0).toUpperCase()}
+                                  </span>
+                                )}
+                                <span>{domain}</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </div>
+                              
+                              {/* Title as link */}
+                              <h4 className={`text-base font-medium ${isSelected ? 'text-primary' : 'text-primary/80 hover:underline'}`}>
+                                {result.title}
+                              </h4>
+                              
+                              {/* Description */}
+                              {result.description && (
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                  {result.description}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {selectedResultId && (
+                <div className="mt-3 p-2 bg-primary/10 rounded text-sm text-primary">
+                  Selected: {webResults.find(wr => wr.id === selectedResultId)?.title}
+                </div>
+              )}
             </div>
 
             {/* Logo URL */}
