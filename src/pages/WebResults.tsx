@@ -1,37 +1,13 @@
-import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-
-const Index = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const wrPage = searchParams.get('wr');
-
-  useEffect(() => {
-    // If wr parameter exists, show web results
-    // Otherwise, redirect to landing
-    if (!wrPage) {
-      navigate('/landing', { replace: true });
-    }
-  }, [wrPage, navigate]);
-
-  // If wr exists, render WebResults inline
-  if (wrPage) {
-    // Dynamic import of WebResults component logic
-    return <WebResultsInline wrPage={parseInt(wrPage)} />;
-  }
-
-  return null;
-};
-
-// Inline WebResults component to avoid circular imports
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult, LandingSettings } from "@/types/database";
 import { trackClick } from "@/lib/tracking";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
-const WebResultsInline = ({ wrPage }: { wrPage: number }) => {
+const WebResults = () => {
+  const [searchParams] = useSearchParams();
+  const wrPage = parseInt(searchParams.get('wr') || '1');
   const [results, setResults] = useState<WebResult[]>([]);
   const [settings, setSettings] = useState<LandingSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,8 +43,11 @@ const WebResultsInline = ({ wrPage }: { wrPage: number }) => {
   };
 
   const handleResultClick = async (result: WebResult, index: number) => {
+    // Track the click
     await trackClick(index + 1, result.id, window.location.href);
-    window.open(`/lid=${index + 1}?rid=${result.id}`, '_blank');
+    
+    // Navigate to the link redirect page
+    window.location.href = `/lid=${index + 1}?rid=${result.id}`;
   };
 
   const getLogoDisplay = (result: WebResult) => {
@@ -81,6 +60,13 @@ const WebResultsInline = ({ wrPage }: { wrPage: number }) => {
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              const span = document.createElement('span');
+              span.className = 'w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary font-bold text-sm';
+              span.textContent = result.title.charAt(0).toUpperCase();
+              parent.appendChild(span);
+            }
           }}
         />
       );
@@ -102,6 +88,7 @@ const WebResultsInline = ({ wrPage }: { wrPage: number }) => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
       <header className="border-b border-border/50 py-4">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <Link to="/landing" className="text-2xl font-display font-bold text-primary">
@@ -117,6 +104,7 @@ const WebResultsInline = ({ wrPage }: { wrPage: number }) => {
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-sm text-muted-foreground mb-8">
@@ -158,6 +146,7 @@ const WebResultsInline = ({ wrPage }: { wrPage: number }) => {
             </div>
           )}
 
+          {/* Pagination hint */}
           <div className="mt-12 pt-6 border-t border-border/30">
             <p className="text-sm text-muted-foreground text-center">
               Showing results from page {wrPage}
@@ -169,4 +158,4 @@ const WebResultsInline = ({ wrPage }: { wrPage: number }) => {
   );
 };
 
-export default Index;
+export default WebResults;

@@ -4,6 +4,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import Landing from "./pages/Landing";
+import LinkRedirect from "./pages/LinkRedirect";
+import AdminLanding from "./pages/admin/AdminLanding";
+import AdminCategories from "./pages/admin/AdminCategories";
+import AdminWebResults from "./pages/admin/AdminWebResults";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -16,7 +22,12 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/landing" element={<Landing />} />
+          <Route path="/lid=:linkId" element={<LinkRedirect />} />
+          <Route path="/admin" element={<AdminLanding />} />
+          <Route path="/admin/categories" element={<AdminCategories />} />
+          <Route path="/admin/webresults" element={<AdminWebResults />} />
+          <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
