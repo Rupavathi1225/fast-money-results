@@ -103,7 +103,7 @@ const AdminPrelander = () => {
     try {
       const saveData = {
         web_result_id: selectedResultId,
-        is_enabled: settings.is_enabled || false,
+        is_enabled: Boolean(settings.is_enabled),
         headline_text: settings.headline_text || 'Welcome',
         headline_font_size: settings.headline_font_size || 48,
         headline_color: settings.headline_color || '#ffffff',
@@ -117,6 +117,8 @@ const AdminPrelander = () => {
         background_image_url: settings.background_image_url || null,
         updated_at: new Date().toISOString(),
       };
+      
+      console.log('Saving prelander settings:', saveData);
 
       const { data: existing } = await supabase
         .from('prelander_settings')
@@ -184,7 +186,7 @@ const AdminPrelander = () => {
               </p>
             </div>
             <Switch
-              checked={settings.is_enabled}
+              checked={settings.is_enabled === true}
               onCheckedChange={(checked) => setSettings({ ...settings, is_enabled: checked })}
             />
           </div>
