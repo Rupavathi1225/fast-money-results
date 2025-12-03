@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { LandingSettings, RelatedSearch } from "@/types/database";
+import { trackRelatedSearchClick } from "@/lib/tracking";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -37,7 +38,9 @@ const Landing = () => {
     }
   };
 
-  const handleSearchClick = (search: RelatedSearch) => {
+  const handleSearchClick = async (search: RelatedSearch) => {
+    // Track the related search click
+    await trackRelatedSearchClick(search.id);
     navigate(`/?wr=${search.web_result_page}`);
   };
 

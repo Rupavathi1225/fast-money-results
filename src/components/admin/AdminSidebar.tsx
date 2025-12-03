@@ -4,7 +4,7 @@ import {
   Search, 
   Globe, 
   BarChart3, 
-  Settings,
+  FileText,
   Home
 } from "lucide-react";
 
@@ -13,6 +13,7 @@ const AdminSidebar = () => {
     { icon: LayoutDashboard, label: 'Landing Page', path: '/admin' },
     { icon: Search, label: 'Categories', path: '/admin/categories' },
     { icon: Globe, label: 'Web Results', path: '/admin/webresults' },
+    { icon: FileText, label: 'Prelander', path: '/admin/prelander' },
     { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
   ];
 

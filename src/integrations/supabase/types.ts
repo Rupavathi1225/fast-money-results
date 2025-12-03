@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      email_submissions: {
+        Row: {
+          country: string | null
+          device_type: string | null
+          email: string
+          id: string
+          ip_address: string | null
+          prelander_id: string | null
+          session_id: string | null
+          submitted_at: string
+          web_result_id: string | null
+        }
+        Insert: {
+          country?: string | null
+          device_type?: string | null
+          email: string
+          id?: string
+          ip_address?: string | null
+          prelander_id?: string | null
+          session_id?: string | null
+          submitted_at?: string
+          web_result_id?: string | null
+        }
+        Update: {
+          country?: string | null
+          device_type?: string | null
+          email?: string
+          id?: string
+          ip_address?: string | null
+          prelander_id?: string | null
+          session_id?: string | null
+          submitted_at?: string
+          web_result_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_submissions_prelander_id_fkey"
+            columns: ["prelander_id"]
+            isOneToOne: false
+            referencedRelation: "prelander_settings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_submissions_web_result_id_fkey"
+            columns: ["web_result_id"]
+            isOneToOne: false
+            referencedRelation: "web_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landing_settings: {
         Row: {
           created_at: string
@@ -50,6 +101,7 @@ export type Database = {
           ip_address: string | null
           link_id: number
           referrer: string | null
+          related_search_id: string | null
           session_id: string
           user_agent: string | null
           web_result_id: string | null
@@ -62,6 +114,7 @@ export type Database = {
           ip_address?: string | null
           link_id: number
           referrer?: string | null
+          related_search_id?: string | null
           session_id: string
           user_agent?: string | null
           web_result_id?: string | null
@@ -74,15 +127,88 @@ export type Database = {
           ip_address?: string | null
           link_id?: number
           referrer?: string | null
+          related_search_id?: string | null
           session_id?: string
           user_agent?: string | null
           web_result_id?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "link_tracking_related_search_id_fkey"
+            columns: ["related_search_id"]
+            isOneToOne: false
+            referencedRelation: "related_searches"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "link_tracking_web_result_id_fkey"
             columns: ["web_result_id"]
             isOneToOne: false
+            referencedRelation: "web_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prelander_settings: {
+        Row: {
+          background_color: string
+          background_image_url: string | null
+          button_color: string
+          button_text: string
+          created_at: string
+          description_color: string
+          description_font_size: number
+          description_text: string
+          headline_alignment: string
+          headline_color: string
+          headline_font_size: number
+          headline_text: string
+          id: string
+          is_enabled: boolean
+          updated_at: string
+          web_result_id: string | null
+        }
+        Insert: {
+          background_color?: string
+          background_image_url?: string | null
+          button_color?: string
+          button_text?: string
+          created_at?: string
+          description_color?: string
+          description_font_size?: number
+          description_text?: string
+          headline_alignment?: string
+          headline_color?: string
+          headline_font_size?: number
+          headline_text?: string
+          id?: string
+          is_enabled?: boolean
+          updated_at?: string
+          web_result_id?: string | null
+        }
+        Update: {
+          background_color?: string
+          background_image_url?: string | null
+          button_color?: string
+          button_text?: string
+          created_at?: string
+          description_color?: string
+          description_font_size?: number
+          description_text?: string
+          headline_alignment?: string
+          headline_color?: string
+          headline_font_size?: number
+          headline_text?: string
+          id?: string
+          is_enabled?: boolean
+          updated_at?: string
+          web_result_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prelander_settings_web_result_id_fkey"
+            columns: ["web_result_id"]
+            isOneToOne: true
             referencedRelation: "web_results"
             referencedColumns: ["id"]
           },
