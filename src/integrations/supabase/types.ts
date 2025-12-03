@@ -159,12 +159,15 @@ export type Database = {
           description_color: string
           description_font_size: number
           description_text: string
+          email_placeholder: string | null
           headline_alignment: string
           headline_color: string
           headline_font_size: number
           headline_text: string
           id: string
           is_enabled: boolean
+          logo_url: string | null
+          main_image_url: string | null
           updated_at: string
           web_result_id: string | null
         }
@@ -177,12 +180,15 @@ export type Database = {
           description_color?: string
           description_font_size?: number
           description_text?: string
+          email_placeholder?: string | null
           headline_alignment?: string
           headline_color?: string
           headline_font_size?: number
           headline_text?: string
           id?: string
           is_enabled?: boolean
+          logo_url?: string | null
+          main_image_url?: string | null
           updated_at?: string
           web_result_id?: string | null
         }
@@ -195,12 +201,15 @@ export type Database = {
           description_color?: string
           description_font_size?: number
           description_text?: string
+          email_placeholder?: string | null
           headline_alignment?: string
           headline_color?: string
           headline_font_size?: number
           headline_text?: string
           id?: string
           is_enabled?: boolean
+          logo_url?: string | null
+          main_image_url?: string | null
           updated_at?: string
           web_result_id?: string | null
         }
