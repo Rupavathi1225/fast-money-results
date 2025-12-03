@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { WebResult } from "@/types/database";
-import { trackClick } from "@/lib/tracking";
+import { WebResult, PrelanderSettings } from "@/types/database";
+import { trackClick, getIpInfo } from "@/lib/tracking";
 
 const LinkRedirect = () => {
   const { linkId } = useParams();
@@ -23,42 +23,53 @@ const LinkRedirect = () => {
     }
 
     try {
-      // Get the web result
-      const { data: result, error: fetchError } = await supabase
-        .from('web_results')
-        .select('*')
-        .eq('id', resultId)
-        .single();
+      // Get the web result and prelander settings
+      const [resultRes, prelanderRes] = await Promise.all([
+        supabase
+          .from('web_results')
+          .select('*')
+          .eq('id', resultId)
+          .single(),
+        supabase
+          .from('prelander_settings')
+          .select('*')
+          .eq('web_result_id', resultId)
+          .eq('is_enabled', true)
+          .maybeSingle(),
+      ]);
 
-      if (fetchError || !result) {
+      if (resultRes.error || !resultRes.data) {
         setError('Link not found');
         setLoading(false);
         return;
       }
 
-      const webResult = result as WebResult;
+      const webResult = resultRes.data as WebResult;
+      const prelander = prelanderRes.data as PrelanderSettings | null;
 
       // Track the click
       await trackClick(parseInt(linkId || '0'), resultId, document.referrer);
 
-      // Check country permissions
+      // Check if prelander is enabled
+      if (prelander && prelander.is_enabled) {
+        // Redirect to prelander page
+        window.location.href = `/prelander?rid=${resultId}`;
+        return;
+      }
+
+      // No prelander, check country permissions and redirect directly
       let targetUrl = webResult.original_link;
 
-      // Get user's country
       try {
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-        const userCountry = data.country_name || '';
+        const { country } = await getIpInfo();
 
-        // Check if country is allowed
         const isWorldwide = webResult.country_permissions?.includes('worldwide');
-        const isCountryAllowed = webResult.country_permissions?.includes(userCountry);
+        const isCountryAllowed = webResult.country_permissions?.includes(country);
 
         if (!isWorldwide && !isCountryAllowed && webResult.fallback_link) {
           targetUrl = webResult.fallback_link;
         }
       } catch (e) {
-        // If we can't determine country, use original link
         console.log('Could not determine country');
       }
 

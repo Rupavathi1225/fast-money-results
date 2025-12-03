@@ -38,6 +38,7 @@ export interface LinkTracking {
   id: string;
   link_id: number;
   web_result_id: string | null;
+  related_search_id: string | null;
   session_id: string;
   ip_address: string | null;
   device_type: string | null;
@@ -56,6 +57,37 @@ export interface Session {
   country: string | null;
   started_at: string;
   last_activity: string;
+}
+
+export interface PrelanderSettings {
+  id: string;
+  web_result_id: string;
+  is_enabled: boolean;
+  headline_text: string;
+  headline_font_size: number;
+  headline_color: string;
+  headline_alignment: string;
+  description_text: string;
+  description_font_size: number;
+  description_color: string;
+  button_text: string;
+  button_color: string;
+  background_color: string;
+  background_image_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmailSubmission {
+  id: string;
+  prelander_id: string | null;
+  web_result_id: string | null;
+  email: string;
+  session_id: string | null;
+  ip_address: string | null;
+  country: string | null;
+  device_type: string | null;
+  submitted_at: string;
 }
 
 export const COUNTRIES = [
