@@ -37,6 +37,7 @@ const WebResultsInline = ({ wrPage }: { wrPage: number }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    document.title = `Web Results - Page ${wrPage}`;
     fetchData();
   }, [wrPage]);
 
@@ -119,10 +120,6 @@ const WebResultsInline = ({ wrPage }: { wrPage: number }) => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-sm text-muted-foreground mb-8">
-            Web Results - Page {wrPage}
-          </h2>
-
           {results.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">No results found for this page.</p>
