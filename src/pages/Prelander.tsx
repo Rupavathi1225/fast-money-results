@@ -1,18 +1,37 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { PrelanderSettings, WebResult } from "@/types/database";
+import { WebResult } from "@/types/database";
 import { generateSessionId, getDeviceType, getIpInfo } from "@/lib/tracking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+
+interface PrelanderData {
+  id: string;
+  is_enabled: boolean;
+  logo_url: string | null;
+  main_image_url: string | null;
+  headline_text: string;
+  headline_font_size: number;
+  headline_color: string;
+  headline_alignment: string;
+  description_text: string;
+  description_font_size: number;
+  description_color: string;
+  email_placeholder: string | null;
+  button_text: string;
+  button_color: string;
+  background_color: string;
+  background_image_url: string | null;
+}
 
 const Prelander = () => {
   const [searchParams] = useSearchParams();
   const resultId = searchParams.get('rid');
   const { toast } = useToast();
   
-  const [settings, setSettings] = useState<PrelanderSettings | null>(null);
+  const [settings, setSettings] = useState<PrelanderData | null>(null);
   const [webResult, setWebResult] = useState<WebResult | null>(null);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
@@ -40,7 +59,7 @@ const Prelander = () => {
       ]);
 
       if (prelanderRes.data) {
-        setSettings(prelanderRes.data as PrelanderSettings);
+        setSettings(prelanderRes.data as unknown as PrelanderData);
       }
       if (webResultRes.data) {
         setWebResult(webResultRes.data as WebResult);
@@ -128,6 +147,28 @@ const Prelander = () => {
       }}
     >
       <div className="max-w-xl w-full text-center space-y-8">
+        {/* Logo */}
+        {settings.logo_url && (
+          <div className="flex justify-center">
+            <img 
+              src={settings.logo_url} 
+              alt="Logo" 
+              className="max-h-16 object-contain"
+            />
+          </div>
+        )}
+
+        {/* Main Image */}
+        {settings.main_image_url && (
+          <div className="flex justify-center">
+            <img 
+              src={settings.main_image_url} 
+              alt="Main" 
+              className="max-w-full max-h-64 object-contain rounded-lg"
+            />
+          </div>
+        )}
+
         {/* Headline */}
         <h1
           style={{
@@ -155,7 +196,7 @@ const Prelander = () => {
         <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto">
           <Input
             type="email"
-            placeholder="Enter your email"
+            placeholder={settings.email_placeholder || "Enter your email"}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="h-12 text-lg bg-white/10 border-white/20 text-white placeholder:text-white/50"
