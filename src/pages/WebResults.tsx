@@ -122,15 +122,14 @@ const WebResults = () => {
                         key={result.id}
                         className={`${idx > 0 ? 'mt-8 pt-8 border-t border-border/20' : ''}`}
                       >
+                        <span className="text-xs text-muted-foreground bg-muted/30 px-2 py-0.5 rounded">Sponsored</span>
                         <h3 
                           onClick={() => handleResultClick(result, originalIndex)}
-                          className="text-lg font-medium text-[#8ab4f8] hover:underline cursor-pointer underline-offset-2"
+                          className="text-lg font-medium text-[#8ab4f8] hover:underline cursor-pointer underline-offset-2 mt-2"
                         >
                           {result.title}
                         </h3>
                         <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                          <span className="text-muted-foreground">Sponsored</span>
-                          <span>·</span>
                           <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{originalIndex + 1}</span>
                         </div>
                         {result.description && (
