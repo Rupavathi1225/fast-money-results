@@ -26,6 +26,7 @@ const AdminWebResults = () => {
     web_result_page: 1,
     display_order: 0,
     is_active: true,
+    is_sponsored: false,
     country_permissions: ['worldwide'] as string[],
     fallback_link: '',
   });
@@ -60,6 +61,7 @@ const AdminWebResults = () => {
       web_result_page: selectedPage,
       display_order: 0,
       is_active: true,
+      is_sponsored: false,
       country_permissions: ['worldwide'],
       fallback_link: '',
     });
@@ -76,6 +78,7 @@ const AdminWebResults = () => {
       web_result_page: result.web_result_page,
       display_order: result.display_order,
       is_active: result.is_active,
+      is_sponsored: (result as any).is_sponsored || false,
       country_permissions: result.country_permissions || ['worldwide'],
       fallback_link: result.fallback_link || '',
     });
@@ -261,12 +264,21 @@ const AdminWebResults = () => {
               />
             </div>
             
-            <div className="flex items-center gap-3 pt-6">
-              <Switch
-                checked={formData.is_active}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-              />
-              <Label>Active</Label>
+            <div className="flex items-center gap-6 pt-6">
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                />
+                <Label>Active</Label>
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={formData.is_sponsored}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_sponsored: checked })}
+                />
+                <Label className="text-amber-500">Sponsored</Label>
+              </div>
             </div>
             
             <div className="md:col-span-2">
@@ -329,6 +341,7 @@ const AdminWebResults = () => {
                       <p className="text-sm text-muted-foreground">
                         lid={index + 1} | Order: {result.display_order}
                         {!result.is_active && ' | Inactive'}
+                        {(result as any).is_sponsored && <span className="text-amber-500 font-medium"> | Sponsored</span>}
                       </p>
                       <a 
                         href={result.original_link} 

@@ -28,6 +28,7 @@ export interface WebResult {
   original_link: string;
   display_order: number;
   is_active: boolean;
+  is_sponsored: boolean;
   country_permissions: string[];
   fallback_link: string | null;
   created_at: string;
