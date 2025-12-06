@@ -301,6 +301,7 @@ export type Database = {
           fallback_link: string | null
           id: string
           is_active: boolean
+          is_sponsored: boolean
           logo_url: string | null
           original_link: string
           title: string
@@ -315,6 +316,7 @@ export type Database = {
           fallback_link?: string | null
           id?: string
           is_active?: boolean
+          is_sponsored?: boolean
           logo_url?: string | null
           original_link: string
           title: string
@@ -329,6 +331,7 @@ export type Database = {
           fallback_link?: string | null
           id?: string
           is_active?: boolean
+          is_sponsored?: boolean
           logo_url?: string | null
           original_link?: string
           title?: string
