@@ -81,17 +81,6 @@ const AdminLanding = () => {
       <div className="max-w-2xl">
         <div className="admin-card space-y-6">
           <div>
-            <Label htmlFor="siteName">Site Name</Label>
-            <Input
-              id="siteName"
-              value={settings?.site_name || ''}
-              onChange={(e) => setSettings(prev => prev ? { ...prev, site_name: e.target.value } : null)}
-              className="mt-2 admin-input"
-              placeholder="FastMoney"
-            />
-          </div>
-
-          <div>
             <Label htmlFor="title">Page Title</Label>
             <Input
               id="title"
