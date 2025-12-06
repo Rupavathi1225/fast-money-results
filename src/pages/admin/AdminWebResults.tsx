@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
-import { WebResult, COUNTRIES } from "@/types/database";
+import { WebResult } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,8 +27,6 @@ const AdminWebResults = () => {
     display_order: 0,
     is_active: true,
     is_sponsored: false,
-    country_permissions: ['worldwide'] as string[],
-    fallback_link: '',
   });
 
   useEffect(() => {
@@ -62,8 +60,6 @@ const AdminWebResults = () => {
       display_order: 0,
       is_active: true,
       is_sponsored: false,
-      country_permissions: ['worldwide'],
-      fallback_link: '',
     });
     setEditingId(null);
   };
@@ -78,9 +74,7 @@ const AdminWebResults = () => {
       web_result_page: result.web_result_page,
       display_order: result.display_order,
       is_active: result.is_active,
-      is_sponsored: (result as any).is_sponsored || false,
-      country_permissions: result.country_permissions || ['worldwide'],
-      fallback_link: result.fallback_link || '',
+      is_sponsored: result.is_sponsored || false,
     });
   };
 
@@ -95,7 +89,6 @@ const AdminWebResults = () => {
         ...formData,
         description: formData.description || null,
         logo_url: formData.logo_url || null,
-        fallback_link: formData.fallback_link || null,
       };
 
       if (editingId) {
@@ -144,19 +137,8 @@ const AdminWebResults = () => {
     }
   };
 
-  const toggleCountry = (country: string) => {
-    const current = formData.country_permissions;
-    if (country === 'worldwide') {
-      setFormData({ ...formData, country_permissions: ['worldwide'] });
-    } else {
-      const filtered = current.filter(c => c !== 'worldwide');
-      if (filtered.includes(country)) {
-        setFormData({ ...formData, country_permissions: filtered.filter(c => c !== country) });
-      } else {
-        setFormData({ ...formData, country_permissions: [...filtered, country] });
-      }
-    }
-  };
+
+
 
   const filteredResults = results.filter(r => 
     r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -243,15 +225,7 @@ const AdminWebResults = () => {
               />
             </div>
             
-            <div>
-              <Label>Fallback Link (for restricted countries)</Label>
-              <Input
-                value={formData.fallback_link}
-                onChange={(e) => setFormData({ ...formData, fallback_link: e.target.value })}
-                className="mt-1 admin-input"
-                placeholder="https://alternative-link.com"
-              />
-            </div>
+            
             
             <div>
               <Label>Display Order</Label>
@@ -278,25 +252,6 @@ const AdminWebResults = () => {
                   onCheckedChange={(checked) => setFormData({ ...formData, is_sponsored: checked })}
                 />
                 <Label className="text-amber-500">Sponsored</Label>
-              </div>
-            </div>
-            
-            <div className="md:col-span-2">
-              <Label className="mb-2 block">Country Permissions</Label>
-              <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 bg-secondary/20 rounded-lg">
-                {COUNTRIES.map((country) => (
-                  <button
-                    key={country}
-                    onClick={() => toggleCountry(country)}
-                    className={`px-3 py-1 text-sm rounded-full border transition-colors ${
-                      formData.country_permissions.includes(country)
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-transparent border-border text-muted-foreground hover:border-primary'
-                    }`}
-                  >
-                    {country}
-                  </button>
-                ))}
               </div>
             </div>
           </div>
