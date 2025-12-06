@@ -131,7 +131,7 @@ const WebResults = () => {
                         <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                           <span className="text-muted-foreground">Sponsored</span>
                           <span>·</span>
-                          <span>{result.original_link}</span>
+                          <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{originalIndex + 1}</span>
                         </div>
                         {result.description && (
                           <p className="text-sm text-muted-foreground/80 mt-2 italic">
