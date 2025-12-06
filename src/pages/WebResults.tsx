@@ -111,34 +111,83 @@ const WebResults = () => {
               <p className="text-muted-foreground">No results found for this page.</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {results.map((result, index) => (
-                <div
-                  key={result.id}
-                  onClick={() => handleResultClick(result, index)}
-                  className="flex items-start gap-4 py-3 cursor-pointer group animate-fade-in"
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                >
-                  <div className="flex-shrink-0">
-                    {getLogoDisplay(result)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
-                      <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{index + 1}</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </div>
-                    <h3 className="text-lg font-medium text-primary group-hover:underline">
-                      {result.title}
-                    </h3>
-                    {result.description && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {result.description}
-                      </p>
-                    )}
-                  </div>
+            <>
+              {/* Sponsored Results Section */}
+              {results.filter(r => r.is_sponsored).length > 0 && (
+                <div className="bg-[#1a1f2e] rounded-lg p-6 mb-8 border border-border/20">
+                  {results.filter(r => r.is_sponsored).map((result, idx) => {
+                    const originalIndex = results.findIndex(r => r.id === result.id);
+                    return (
+                      <div
+                        key={result.id}
+                        className={`${idx > 0 ? 'mt-8 pt-8 border-t border-border/20' : ''}`}
+                      >
+                        <h3 
+                          onClick={() => handleResultClick(result, originalIndex)}
+                          className="text-lg font-medium text-[#8ab4f8] hover:underline cursor-pointer underline-offset-2"
+                        >
+                          {result.title}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                          <span className="text-muted-foreground">Sponsored</span>
+                          <span>·</span>
+                          <span>{result.original_link}</span>
+                        </div>
+                        {result.description && (
+                          <p className="text-sm text-muted-foreground/80 mt-2 italic">
+                            {result.description}
+                          </p>
+                        )}
+                        <button
+                          onClick={() => handleResultClick(result, originalIndex)}
+                          className="mt-4 px-6 py-2.5 bg-[#2563eb] text-white font-medium rounded hover:bg-[#1d4ed8] transition-colors flex items-center gap-2"
+                        >
+                          <span>➤</span> Visit Website
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              )}
+
+              {/* Regular Web Results */}
+              {results.filter(r => !r.is_sponsored).length > 0 && (
+                <>
+                  <p className="text-sm text-muted-foreground mb-4">Web Results</p>
+                  <div className="space-y-6">
+                    {results.filter(r => !r.is_sponsored).map((result) => {
+                      const originalIndex = results.findIndex(r => r.id === result.id);
+                      return (
+                        <div
+                          key={result.id}
+                          onClick={() => handleResultClick(result, originalIndex)}
+                          className="flex items-start gap-4 py-3 cursor-pointer group animate-fade-in"
+                          style={{ animationDelay: `${originalIndex * 0.05}s` }}
+                        >
+                          <div className="flex-shrink-0">
+                            {getLogoDisplay(result)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
+                              <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{originalIndex + 1}</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </div>
+                            <h3 className="text-lg font-medium text-primary group-hover:underline">
+                              {result.title}
+                            </h3>
+                            {result.description && (
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                {result.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </>
           )}
 
           <div className="mt-12 pt-6 border-t border-border/30">
