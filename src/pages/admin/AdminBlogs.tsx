@@ -29,7 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Copy, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, ExternalLink, Sparkles, Loader2 } from "lucide-react";
 
 interface Blog {
   id: string;
@@ -51,6 +51,7 @@ const AdminBlogs = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
@@ -118,6 +119,38 @@ const AdminBlogs = () => {
       toast({ title: "Error deleting blog", description: error.message, variant: "destructive" });
     },
   });
+
+  const generateImage = async () => {
+    if (!formData.title.trim()) {
+      toast({ title: "Please enter a title first", variant: "destructive" });
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-blog-image", {
+        body: { title: formData.title },
+      });
+
+      if (error) throw error;
+      
+      if (data?.image_url) {
+        setFormData({ ...formData, featured_image_url: data.image_url });
+        toast({ title: "Image generated successfully" });
+      } else if (data?.error) {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error("Error generating image:", error);
+      toast({
+        title: "Error generating image",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
 
   const resetForm = () => {
     setFormData({
@@ -257,13 +290,45 @@ const AdminBlogs = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="featured_image_url">Featured Image URL</Label>
-                    <Input
-                      id="featured_image_url"
-                      value={formData.featured_image_url}
-                      onChange={(e) => setFormData({ ...formData, featured_image_url: e.target.value })}
-                      placeholder="Or paste image URL here..."
-                    />
+                    <Label htmlFor="featured_image_url">Featured Image</Label>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={generateImage}
+                          disabled={isGeneratingImage || !formData.title.trim()}
+                          className="flex-shrink-0"
+                        >
+                          {isGeneratingImage ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4 mr-2" />
+                              Generate AI Image
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <Input
+                        id="featured_image_url"
+                        value={formData.featured_image_url}
+                        onChange={(e) => setFormData({ ...formData, featured_image_url: e.target.value })}
+                        placeholder="Or paste image URL here..."
+                      />
+                      {formData.featured_image_url && (
+                        <div className="mt-2">
+                          <img
+                            src={formData.featured_image_url}
+                            alt="Preview"
+                            className="max-h-40 rounded-md object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <Label htmlFor="status">Status</Label>
