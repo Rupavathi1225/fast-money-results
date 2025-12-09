@@ -100,12 +100,6 @@ const Landing = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border/50 py-6 mt-auto">
-        <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
-          © {new Date().getFullYear()} {settings?.site_name || 'FastMoney'}. All rights reserved.
-        </div>
-      </footer>
     </div>
   );
 };

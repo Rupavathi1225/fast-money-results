@@ -189,11 +189,6 @@ const WebResults = () => {
             </>
           )}
 
-          <div className="mt-12 pt-6 border-t border-border/30">
-            <p className="text-sm text-muted-foreground text-center">
-              Showing results from page {pageNumber}
-            </p>
-          </div>
         </div>
       </main>
     </div>
