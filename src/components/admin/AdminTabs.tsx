@@ -10,6 +10,7 @@ const AdminTabs = () => {
     if (location.pathname.includes('/admin/categories')) return 'categories';
     if (location.pathname.includes('/admin/webresults')) return 'webresults';
     if (location.pathname.includes('/admin/prelander')) return 'prelander';
+    if (location.pathname.includes('/admin/blogs')) return 'blogs';
     if (location.pathname.includes('/admin/analytics')) return 'analytics';
     return 'landing';
   };
@@ -28,6 +29,9 @@ const AdminTabs = () => {
       case 'prelander':
         navigate('/admin/prelander');
         break;
+      case 'blogs':
+        navigate('/admin/blogs');
+        break;
       case 'analytics':
         navigate('/admin/analytics');
         break;
@@ -36,20 +40,23 @@ const AdminTabs = () => {
 
   return (
     <Tabs value={getActiveTab()} onValueChange={handleTabChange} className="w-full">
-      <TabsList className="w-full justify-center bg-muted/50 h-12">
-        <TabsTrigger value="landing" className="px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+      <TabsList className="w-full justify-center bg-muted/50 h-12 flex-wrap">
+        <TabsTrigger value="landing" className="px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
           Landing Content
         </TabsTrigger>
-        <TabsTrigger value="categories" className="px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+        <TabsTrigger value="categories" className="px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
           Search Buttons
         </TabsTrigger>
-        <TabsTrigger value="webresults" className="px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+        <TabsTrigger value="webresults" className="px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
           Web Results
         </TabsTrigger>
-        <TabsTrigger value="prelander" className="px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+        <TabsTrigger value="prelander" className="px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
           Page Builder
         </TabsTrigger>
-        <TabsTrigger value="analytics" className="px-6 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+        <TabsTrigger value="blogs" className="px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          Blogs
+        </TabsTrigger>
+        <TabsTrigger value="analytics" className="px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
           Analytics
         </TabsTrigger>
       </TabsList>
