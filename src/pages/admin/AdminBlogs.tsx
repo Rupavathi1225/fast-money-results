@@ -205,7 +205,7 @@ const AdminBlogs = () => {
                         setFormData({ 
                           ...formData, 
                           title: e.target.value,
-                          slug: formData.slug || generateSlug(e.target.value)
+                          slug: generateSlug(e.target.value)
                         });
                       }}
                       required
