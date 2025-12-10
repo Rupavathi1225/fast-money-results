@@ -8,13 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, X, Search } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
 
+interface Blog {
+  id: string;
+  title: string;
+  slug: string;
+}
+
 const AdminCategories = () => {
   const { toast } = useToast();
   const [searches, setSearches] = useState<RelatedSearch[]>([]);
+  const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -26,10 +34,12 @@ const AdminCategories = () => {
     position: 1,
     display_order: 0,
     is_active: true,
+    blog_id: '' as string | null,
   });
 
   useEffect(() => {
     fetchSearches();
+    fetchBlogs();
   }, []);
 
   const fetchSearches = async () => {
@@ -49,6 +59,20 @@ const AdminCategories = () => {
     }
   };
 
+  const fetchBlogs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('blogs')
+        .select('id, title, slug')
+        .order('title', { ascending: true });
+
+      if (error) throw error;
+      setBlogs(data || []);
+    } catch (error) {
+      console.error('Error fetching blogs:', error);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       search_text: '',
@@ -57,6 +81,7 @@ const AdminCategories = () => {
       position: 1,
       display_order: 0,
       is_active: true,
+      blog_id: null,
     });
     setEditingId(null);
   };
@@ -70,6 +95,7 @@ const AdminCategories = () => {
       position: search.position,
       display_order: search.display_order,
       is_active: search.is_active,
+      blog_id: search.blog_id,
     });
   };
 
@@ -269,6 +295,26 @@ const AdminCategories = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
+              <Label>Blog (optional)</Label>
+              <Select
+                value={formData.blog_id || 'none'}
+                onValueChange={(value) => setFormData({ ...formData, blog_id: value === 'none' ? null : value })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select blog (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No blog (Landing page)</SelectItem>
+                  {blogs.map((blog) => (
+                    <SelectItem key={blog.id} value={blog.id}>
+                      {blog.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
               <Label>Search Text</Label>
               <Input
                 value={formData.search_text}
@@ -350,42 +396,46 @@ const AdminCategories = () => {
           </h3>
           
           <div className="space-y-2">
-            {filteredSearches.map((search) => (
-              <div
-                key={search.id}
-                className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    checked={selectedIds.has(search.id)}
-                    onCheckedChange={() => toggleSelection(search.id)}
-                  />
-                  <div>
-                    <p className="font-medium text-foreground">{search.search_text}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Page: wr={search.web_result_page} | Pos: {search.position} | Order: {search.display_order}
-                      {!search.is_active && ' | Inactive'}
-                    </p>
+            {filteredSearches.map((search) => {
+              const linkedBlog = blogs.find(b => b.id === search.blog_id);
+              return (
+                <div
+                  key={search.id}
+                  className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={selectedIds.has(search.id)}
+                      onCheckedChange={() => toggleSelection(search.id)}
+                    />
+                    <div>
+                      <p className="font-medium text-foreground">{search.search_text}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Page: wr={search.web_result_page} | Pos: {search.position} | Order: {search.display_order}
+                        {linkedBlog && ` | Blog: ${linkedBlog.title}`}
+                        {!search.is_active && ' | Inactive'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleEdit(search)}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => handleDelete(search.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleEdit(search)}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    onClick={() => handleDelete(search.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             
             {filteredSearches.length === 0 && (
               <p className="text-muted-foreground text-center py-8">

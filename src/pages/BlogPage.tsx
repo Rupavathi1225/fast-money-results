@@ -21,6 +21,7 @@ interface RelatedSearch {
   search_text: string;
   web_result_page: number;
   display_order: number;
+  blog_id: string | null;
 }
 
 const BlogPage = () => {
@@ -41,14 +42,15 @@ const BlogPage = () => {
   });
 
   const { data: relatedSearches } = useQuery({
-    queryKey: ["related-searches-blog"],
+    queryKey: ["related-searches-blog", blog?.id],
+    enabled: !!blog?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("related_searches")
         .select("*")
+        .eq("blog_id", blog!.id)
         .eq("is_active", true)
-        .order("display_order", { ascending: true })
-        .limit(5);
+        .order("display_order", { ascending: true });
       if (error) throw error;
       return data as RelatedSearch[];
     },

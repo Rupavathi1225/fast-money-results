@@ -264,6 +264,7 @@ export type Database = {
       }
       related_searches: {
         Row: {
+          blog_id: string | null
           created_at: string
           display_order: number
           id: string
@@ -275,6 +276,7 @@ export type Database = {
           web_result_page: number
         }
         Insert: {
+          blog_id?: string | null
           created_at?: string
           display_order?: number
           id?: string
@@ -286,6 +288,7 @@ export type Database = {
           web_result_page?: number
         }
         Update: {
+          blog_id?: string | null
           created_at?: string
           display_order?: number
           id?: string
@@ -296,7 +299,15 @@ export type Database = {
           updated_at?: string
           web_result_page?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "related_searches_blog_id_fkey"
+            columns: ["blog_id"]
+            isOneToOne: false
+            referencedRelation: "blogs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sessions: {
         Row: {
