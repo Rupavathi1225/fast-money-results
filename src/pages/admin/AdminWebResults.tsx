@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
+import BulkActionToolbar from "@/components/admin/BulkActionToolbar";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult } from "@/types/database";
 import { Button } from "@/components/ui/button";
@@ -7,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, X, Search, ExternalLink } from "lucide-react";
+import { exportToCSV } from "@/lib/csvExport";
 
 const AdminWebResults = () => {
   const { toast } = useToast();
@@ -17,6 +19,7 @@ const AdminWebResults = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPage, setSelectedPage] = useState<number>(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -43,6 +46,7 @@ const AdminWebResults = () => {
 
       if (error) throw error;
       setResults(data as WebResult[]);
+      setSelectedIds(new Set());
     } catch (error) {
       console.error('Error fetching results:', error);
     } finally {
@@ -137,8 +141,106 @@ const AdminWebResults = () => {
     }
   };
 
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredResults.map(r => r.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
 
+  const handleExportAll = () => {
+    exportToCSV(results, 'web-results', [
+      { key: 'id', header: 'ID' },
+      { key: 'title', header: 'Title' },
+      { key: 'description', header: 'Description' },
+      { key: 'original_link', header: 'Original Link' },
+      { key: 'web_result_page', header: 'Page' },
+      { key: 'display_order', header: 'Order' },
+      { key: 'is_active', header: 'Active' },
+      { key: 'is_sponsored', header: 'Sponsored' },
+    ]);
+    toast({ title: "Exported all web results to CSV" });
+  };
+
+  const handleExportSelected = () => {
+    const selectedData = results.filter(r => selectedIds.has(r.id));
+    exportToCSV(selectedData, 'web-results-selected', [
+      { key: 'id', header: 'ID' },
+      { key: 'title', header: 'Title' },
+      { key: 'description', header: 'Description' },
+      { key: 'original_link', header: 'Original Link' },
+      { key: 'web_result_page', header: 'Page' },
+      { key: 'display_order', header: 'Order' },
+      { key: 'is_active', header: 'Active' },
+      { key: 'is_sponsored', header: 'Sponsored' },
+    ]);
+    toast({ title: `Exported ${selectedIds.size} web results to CSV` });
+  };
+
+  const handleCopy = () => {
+    const selectedData = results.filter(r => selectedIds.has(r.id));
+    const text = selectedData.map(r => `${r.title} - ${r.original_link}`).join('\n');
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied to clipboard" });
+  };
+
+  const handleBulkActivate = async () => {
+    try {
+      const { error } = await supabase
+        .from('web_results')
+        .update({ is_active: true })
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+      toast({ title: `Activated ${selectedIds.size} web results` });
+      fetchResults();
+    } catch (error) {
+      toast({ title: "Error activating", variant: "destructive" });
+    }
+  };
+
+  const handleBulkDeactivate = async () => {
+    try {
+      const { error } = await supabase
+        .from('web_results')
+        .update({ is_active: false })
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+      toast({ title: `Deactivated ${selectedIds.size} web results` });
+      fetchResults();
+    } catch (error) {
+      toast({ title: "Error deactivating", variant: "destructive" });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} items?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('web_results')
+        .delete()
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+      toast({ title: `Deleted ${selectedIds.size} web results` });
+      fetchResults();
+    } catch (error) {
+      toast({ title: "Error deleting", variant: "destructive" });
+    }
+  };
 
   const filteredResults = results.filter(r => 
     r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -177,6 +279,20 @@ const AdminWebResults = () => {
             className="pl-10 admin-input"
           />
         </div>
+
+        {/* Bulk Actions */}
+        <BulkActionToolbar
+          totalCount={filteredResults.length}
+          selectedCount={selectedIds.size}
+          allSelected={selectedIds.size === filteredResults.length && filteredResults.length > 0}
+          onSelectAll={handleSelectAll}
+          onExportAll={handleExportAll}
+          onExportSelected={handleExportSelected}
+          onCopy={handleCopy}
+          onActivate={handleBulkActivate}
+          onDeactivate={handleBulkDeactivate}
+          onDelete={handleBulkDelete}
+        />
 
         {/* Add/Edit Form */}
         <div className="admin-card">
@@ -224,8 +340,6 @@ const AdminWebResults = () => {
                 placeholder="https://www.fiverr.com"
               />
             </div>
-            
-            
             
             <div>
               <Label>Display Order</Label>
@@ -284,6 +398,10 @@ const AdminWebResults = () => {
                   className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg"
                 >
                   <div className="flex items-center gap-4">
+                    <Checkbox
+                      checked={selectedIds.has(result.id)}
+                      onCheckedChange={() => toggleSelection(result.id)}
+                    />
                     {result.logo_url ? (
                       <img src={result.logo_url} alt="" className="w-8 h-8 rounded object-cover" />
                     ) : (
