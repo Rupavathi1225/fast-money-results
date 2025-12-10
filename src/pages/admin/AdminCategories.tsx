@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
+import BulkActionToolbar from "@/components/admin/BulkActionToolbar";
 import { supabase } from "@/integrations/supabase/client";
 import { RelatedSearch } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, X, Search } from "lucide-react";
+import { exportToCSV } from "@/lib/csvExport";
 
 const AdminCategories = () => {
   const { toast } = useToast();
   const [searches, setSearches] = useState<RelatedSearch[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     search_text: '',
@@ -37,6 +41,7 @@ const AdminCategories = () => {
 
       if (error) throw error;
       setSearches(data as RelatedSearch[]);
+      setSelectedIds(new Set());
     } catch (error) {
       console.error('Error fetching searches:', error);
     } finally {
@@ -116,6 +121,105 @@ const AdminCategories = () => {
     }
   };
 
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredSearches.map(s => s.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleExportAll = () => {
+    exportToCSV(searches, 'related-searches', [
+      { key: 'id', header: 'ID' },
+      { key: 'search_text', header: 'Search Text' },
+      { key: 'title', header: 'Title' },
+      { key: 'web_result_page', header: 'Web Result Page' },
+      { key: 'position', header: 'Position' },
+      { key: 'display_order', header: 'Display Order' },
+      { key: 'is_active', header: 'Active' },
+    ]);
+    toast({ title: "Exported all searches to CSV" });
+  };
+
+  const handleExportSelected = () => {
+    const selectedData = searches.filter(s => selectedIds.has(s.id));
+    exportToCSV(selectedData, 'related-searches-selected', [
+      { key: 'id', header: 'ID' },
+      { key: 'search_text', header: 'Search Text' },
+      { key: 'title', header: 'Title' },
+      { key: 'web_result_page', header: 'Web Result Page' },
+      { key: 'position', header: 'Position' },
+      { key: 'display_order', header: 'Display Order' },
+      { key: 'is_active', header: 'Active' },
+    ]);
+    toast({ title: `Exported ${selectedIds.size} searches to CSV` });
+  };
+
+  const handleCopy = () => {
+    const selectedData = searches.filter(s => selectedIds.has(s.id));
+    const text = selectedData.map(s => `${s.search_text} - ${s.title}`).join('\n');
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied to clipboard" });
+  };
+
+  const handleBulkActivate = async () => {
+    try {
+      const { error } = await supabase
+        .from('related_searches')
+        .update({ is_active: true })
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+      toast({ title: `Activated ${selectedIds.size} searches` });
+      fetchSearches();
+    } catch (error) {
+      toast({ title: "Error activating", variant: "destructive" });
+    }
+  };
+
+  const handleBulkDeactivate = async () => {
+    try {
+      const { error } = await supabase
+        .from('related_searches')
+        .update({ is_active: false })
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+      toast({ title: `Deactivated ${selectedIds.size} searches` });
+      fetchSearches();
+    } catch (error) {
+      toast({ title: "Error deactivating", variant: "destructive" });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} items?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('related_searches')
+        .delete()
+        .in('id', Array.from(selectedIds));
+
+      if (error) throw error;
+      toast({ title: `Deleted ${selectedIds.size} searches` });
+      fetchSearches();
+    } catch (error) {
+      toast({ title: "Error deleting", variant: "destructive" });
+    }
+  };
+
   const filteredSearches = searches.filter(s => 
     s.search_text.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -142,6 +246,20 @@ const AdminCategories = () => {
             className="pl-10 admin-input"
           />
         </div>
+
+        {/* Bulk Actions */}
+        <BulkActionToolbar
+          totalCount={filteredSearches.length}
+          selectedCount={selectedIds.size}
+          allSelected={selectedIds.size === filteredSearches.length && filteredSearches.length > 0}
+          onSelectAll={handleSelectAll}
+          onExportAll={handleExportAll}
+          onExportSelected={handleExportSelected}
+          onCopy={handleCopy}
+          onActivate={handleBulkActivate}
+          onDeactivate={handleBulkDeactivate}
+          onDelete={handleBulkDelete}
+        />
 
         {/* Add/Edit Form */}
         <div className="admin-card">
@@ -237,12 +355,18 @@ const AdminCategories = () => {
                 key={search.id}
                 className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg"
               >
-                <div>
-                  <p className="font-medium text-foreground">{search.search_text}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Page: wr={search.web_result_page} | Pos: {search.position} | Order: {search.display_order}
-                    {!search.is_active && ' | Inactive'}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={selectedIds.has(search.id)}
+                    onCheckedChange={() => toggleSelection(search.id)}
+                  />
+                  <div>
+                    <p className="font-medium text-foreground">{search.search_text}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Page: wr={search.web_result_page} | Pos: {search.position} | Order: {search.display_order}
+                      {!search.is_active && ' | Inactive'}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button
