@@ -15,6 +15,7 @@ export interface RelatedSearch {
   position: number;
   display_order: number;
   is_active: boolean;
+  blog_id: string | null;
   created_at: string;
   updated_at: string;
 }
