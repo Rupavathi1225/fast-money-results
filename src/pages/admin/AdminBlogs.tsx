@@ -55,6 +55,7 @@ const AdminBlogs = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState({
     title: "",
@@ -139,7 +140,7 @@ const AdminBlogs = () => {
       if (error) throw error;
       
       if (data?.image_url) {
-        setFormData({ ...formData, featured_image_url: data.image_url });
+        setFormData((prev) => ({ ...prev, featured_image_url: data.image_url }));
         toast({ title: "Image generated successfully" });
       } else if (data?.error) {
         throw new Error(data.error);
@@ -153,6 +154,35 @@ const AdminBlogs = () => {
       });
     } finally {
       setIsGeneratingImage(false);
+    }
+  };
+
+  const generateContent = async (title: string, slug: string) => {
+    if (!title.trim()) return;
+
+    setIsGeneratingContent(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-blog-content", {
+        body: { title, slug },
+      });
+
+      if (error) throw error;
+      
+      if (data?.content) {
+        setFormData((prev) => ({ ...prev, content: data.content }));
+        toast({ title: "Content generated successfully" });
+      } else if (data?.error) {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error("Error generating content:", error);
+      toast({
+        title: "Error generating content",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingContent(false);
     }
   };
 
@@ -344,11 +374,21 @@ const AdminBlogs = () => {
                       id="title"
                       value={formData.title}
                       onChange={(e) => {
+                        const newTitle = e.target.value;
+                        const newSlug = generateSlug(newTitle);
                         setFormData({ 
                           ...formData, 
-                          title: e.target.value,
-                          slug: generateSlug(e.target.value)
+                          title: newTitle,
+                          slug: newSlug
                         });
+                      }}
+                      onBlur={(e) => {
+                        const title = e.target.value.trim();
+                        const slug = generateSlug(title);
+                        // Auto-generate content only for new blogs without content
+                        if (title && !editingBlog && !formData.content.trim()) {
+                          generateContent(title, slug);
+                        }
                       }}
                       required
                     />
@@ -390,13 +430,36 @@ const AdminBlogs = () => {
                   </div>
                   <div>
                     <Label htmlFor="content">Content *</Label>
-                    <Textarea
-                      id="content"
-                      value={formData.content}
-                      onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                      rows={8}
-                      required
-                    />
+                    <div className="space-y-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => generateContent(formData.title, formData.slug)}
+                        disabled={isGeneratingContent || !formData.title.trim()}
+                        className="flex-shrink-0"
+                      >
+                        {isGeneratingContent ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating Content...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generate AI Content
+                          </>
+                        )}
+                      </Button>
+                      <Textarea
+                        id="content"
+                        value={formData.content}
+                        onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                        rows={8}
+                        required
+                        placeholder={isGeneratingContent ? "Generating content..." : "Enter blog content or generate with AI..."}
+                        disabled={isGeneratingContent}
+                      />
+                    </div>
                   </div>
                   <div>
                     <Label htmlFor="featured_image_url">Featured Image</Label>
