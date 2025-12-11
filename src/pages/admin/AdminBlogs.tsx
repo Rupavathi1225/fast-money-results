@@ -57,6 +57,8 @@ const AdminBlogs = () => {
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [generatedSearches, setGeneratedSearches] = useState<string[]>([]);
+  const [selectedSearches, setSelectedSearches] = useState<Set<number>>(new Set());
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
@@ -80,13 +82,31 @@ const AdminBlogs = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from("blogs").insert([data]);
+    mutationFn: async (data: typeof formData & { selectedSearchIndexes: number[] }) => {
+      const { selectedSearchIndexes, ...blogData } = data;
+      const { data: insertedBlog, error } = await supabase.from("blogs").insert([blogData]).select().single();
       if (error) throw error;
+      
+      // Create selected related searches for landing page
+      if (selectedSearchIndexes.length > 0 && insertedBlog) {
+        const searchesToInsert = selectedSearchIndexes.map((index, i) => ({
+          search_text: generatedSearches[index],
+          title: generatedSearches[index],
+          web_result_page: i + 1, // 1, 2, 3, 4 for /wr=1, /wr=2, etc.
+          position: 1,
+          display_order: i,
+          is_active: true,
+          blog_id: null, // These go to landing page, not blog-specific
+        }));
+        
+        const { error: searchError } = await supabase.from("related_searches").insert(searchesToInsert);
+        if (searchError) console.error("Error creating related searches:", searchError);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"] });
-      toast({ title: "Blog created successfully" });
+      queryClient.invalidateQueries({ queryKey: ["related_searches"] });
+      toast({ title: "Blog created with related searches" });
       resetForm();
       setIsDialogOpen(false);
     },
@@ -170,7 +190,12 @@ const AdminBlogs = () => {
       
       if (data?.content) {
         setFormData((prev) => ({ ...prev, content: data.content }));
-        toast({ title: "Content generated successfully" });
+        // Set generated related searches
+        if (data?.relatedSearches && Array.isArray(data.relatedSearches)) {
+          setGeneratedSearches(data.relatedSearches);
+          setSelectedSearches(new Set()); // Reset selection
+        }
+        toast({ title: "Content & related searches generated" });
       } else if (data?.error) {
         throw new Error(data.error);
       }
@@ -186,6 +211,18 @@ const AdminBlogs = () => {
     }
   };
 
+  const toggleSearchSelection = (index: number) => {
+    const newSelected = new Set(selectedSearches);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else if (newSelected.size < 4) {
+      newSelected.add(index);
+    } else {
+      toast({ title: "You can only select up to 4 related searches", variant: "destructive" });
+    }
+    setSelectedSearches(newSelected);
+  };
+
   const resetForm = () => {
     setFormData({
       title: "",
@@ -197,6 +234,8 @@ const AdminBlogs = () => {
       status: "draft",
     });
     setEditingBlog(null);
+    setGeneratedSearches([]);
+    setSelectedSearches(new Set());
   };
 
   const handleEdit = (blog: Blog) => {
@@ -218,7 +257,7 @@ const AdminBlogs = () => {
     if (editingBlog) {
       updateMutation.mutate({ id: editingBlog.id, data: formData });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate({ ...formData, selectedSearchIndexes: Array.from(selectedSearches) });
     }
   };
 
@@ -502,6 +541,45 @@ const AdminBlogs = () => {
                       )}
                     </div>
                   </div>
+                  
+                  {/* Generated Related Searches Selection */}
+                  {generatedSearches.length > 0 && !editingBlog && (
+                    <div>
+                      <Label>Select Related Searches for Landing Page (max 4)</Label>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Selected searches will appear on landing page and redirect to /wr=1, /wr=2, etc.
+                      </p>
+                      <div className="space-y-2 border rounded-md p-3">
+                        {generatedSearches.map((search, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`search-${index}`}
+                              checked={selectedSearches.has(index)}
+                              onCheckedChange={() => toggleSearchSelection(index)}
+                              disabled={!selectedSearches.has(index) && selectedSearches.size >= 4}
+                            />
+                            <label
+                              htmlFor={`search-${index}`}
+                              className={`text-sm cursor-pointer ${
+                                selectedSearches.has(index) ? "text-foreground" : "text-muted-foreground"
+                              }`}
+                            >
+                              {search}
+                              {selectedSearches.has(index) && (
+                                <span className="ml-2 text-xs text-primary">
+                                  → /wr={Array.from(selectedSearches).sort().indexOf(index) + 1}
+                                </span>
+                              )}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {selectedSearches.size}/4 selected
+                      </p>
+                    </div>
+                  )}
+
                   <div>
                     <Label htmlFor="status">Status</Label>
                     <Select

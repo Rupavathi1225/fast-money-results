@@ -38,20 +38,21 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a professional blog content writer. Write engaging, informative, and well-structured blog content. Use proper formatting with paragraphs. Do not include the title in your response as it will be displayed separately. Write in a conversational yet professional tone.",
+            content: "You are a professional content writer. Generate concise, engaging content. Respond ONLY with valid JSON, no markdown formatting.",
           },
           {
             role: "user",
-            content: `Write a comprehensive blog article for the following title: "${title}". 
-            
-The article should:
-- Be approximately 400-600 words
-- Have a compelling introduction
-- Include 2-3 main sections with clear points
-- End with a conclusion or call-to-action
-- Be SEO-friendly and engaging
+            content: `For the blog title "${title}", generate:
+1. A SHORT blog content (exactly 50 words, simple, tight, direct)
+2. Related search suggestions (1-6 items, each exactly 5 words)
 
-Write the content directly without any markdown headers or title repetition.`,
+Respond in this exact JSON format:
+{
+  "content": "Your 50 word blog content here...",
+  "relatedSearches": ["Five word search term one", "Five word search term two", "Five word search term three"]
+}
+
+Generate 4-6 related search suggestions that are relevant to the title.`,
           },
         ],
       }),
@@ -78,14 +79,32 @@ Write the content directly without any markdown headers or title repetition.`,
     const data = await response.json();
     console.log("AI response received");
 
-    const content = data.choices?.[0]?.message?.content;
+    const rawContent = data.choices?.[0]?.message?.content;
     
-    if (!content) {
+    if (!rawContent) {
       throw new Error("No content generated");
     }
 
+    // Parse the JSON response
+    let parsedContent;
+    try {
+      // Remove markdown code blocks if present
+      const cleanContent = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsedContent = JSON.parse(cleanContent);
+    } catch (parseError) {
+      console.error("Failed to parse AI response:", rawContent);
+      // Fallback: return raw content as blog content
+      return new Response(
+        JSON.stringify({ content: rawContent, relatedSearches: [] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ content }),
+      JSON.stringify({ 
+        content: parsedContent.content || rawContent,
+        relatedSearches: parsedContent.relatedSearches || []
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
