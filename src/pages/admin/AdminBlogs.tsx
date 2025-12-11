@@ -87,7 +87,7 @@ const AdminBlogs = () => {
       const { data: insertedBlog, error } = await supabase.from("blogs").insert([blogData]).select().single();
       if (error) throw error;
       
-      // Create selected related searches for landing page
+      // Create selected related searches linked to this blog
       if (selectedSearchIndexes.length > 0 && insertedBlog) {
         const searchesToInsert = selectedSearchIndexes.map((index, i) => ({
           search_text: generatedSearches[index],
@@ -96,7 +96,7 @@ const AdminBlogs = () => {
           position: 1,
           display_order: i,
           is_active: true,
-          blog_id: null, // These go to landing page, not blog-specific
+          blog_id: insertedBlog.id, // Link to this blog so they appear on the blog page
         }));
         
         const { error: searchError } = await supabase.from("related_searches").insert(searchesToInsert);
@@ -105,7 +105,7 @@ const AdminBlogs = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"] });
-      queryClient.invalidateQueries({ queryKey: ["related_searches"] });
+      queryClient.invalidateQueries({ queryKey: ["related-searches-blog"] });
       toast({ title: "Blog created with related searches" });
       resetForm();
       setIsDialogOpen(false);
