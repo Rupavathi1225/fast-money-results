@@ -301,7 +301,7 @@ const AdminWebResults = () => {
       const generated = (data.results || []).map((r: any, idx: number) => ({
         title: r.title,
         description: r.description,
-        link: '',
+        link: r.link || '',
         targetPage: search.web_result_page,
         selected: true,
       }));
