@@ -23,6 +23,7 @@ interface RelatedSearch {
 interface GeneratedResult {
   title: string;
   description: string;
+  link: string;
   targetPage: number;
   selected: boolean;
 }
@@ -300,6 +301,7 @@ const AdminWebResults = () => {
       const generated = (data.results || []).map((r: any, idx: number) => ({
         title: r.title,
         description: r.description,
+        link: '',
         targetPage: search.web_result_page,
         selected: true,
       }));
@@ -321,11 +323,17 @@ const AdminWebResults = () => {
       return;
     }
 
+    const missingLinks = toSave.filter(r => !r.link.trim());
+    if (missingLinks.length > 0) {
+      toast({ title: "Error", description: "Please enter a link URL for all selected results.", variant: "destructive" });
+      return;
+    }
+
     try {
       const inserts = toSave.map((r, idx) => ({
         title: r.title,
         description: r.description,
-        original_link: '',
+        original_link: r.link,
         web_result_page: r.targetPage,
         display_order: idx,
         is_active: true,
@@ -429,6 +437,19 @@ const AdminWebResults = () => {
                             }}
                             className="mt-1 admin-input"
                             rows={2}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Link URL (required)</Label>
+                          <Input
+                            value={result.link}
+                            onChange={(e) => {
+                              const updated = [...generatedResults];
+                              updated[idx].link = e.target.value;
+                              setGeneratedResults(updated);
+                            }}
+                            placeholder="https://example.com"
+                            className="mt-1 admin-input"
                           />
                         </div>
                       </div>
