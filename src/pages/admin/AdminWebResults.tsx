@@ -62,7 +62,6 @@ const AdminWebResults = () => {
       const { data, error } = await supabase
         .from('related_searches')
         .select('id, title, web_result_page')
-        .is('blog_id', null)
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
@@ -486,19 +485,29 @@ const AdminWebResults = () => {
         {/* Page Selector */}
         <div className="flex items-center gap-4 flex-wrap">
           <Label>Select Page:</Label>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((page) => (
-              <Button
-                key={page}
-                variant={selectedPage === page ? "default" : "outline"}
-                onClick={() => {
-                  setSelectedPage(page);
-                  setFormData(prev => ({ ...prev, web_result_page: page }));
-                }}
-              >
-                wr={page}
-              </Button>
-            ))}
+          <div className="flex gap-2 flex-wrap">
+            {[1, 2, 3, 4, 5].map((page) => {
+              const relatedSearch = relatedSearches.find(s => s.web_result_page === page);
+              return (
+                <Button
+                  key={page}
+                  variant={selectedPage === page ? "default" : "outline"}
+                  onClick={() => {
+                    setSelectedPage(page);
+                    setFormData(prev => ({ ...prev, web_result_page: page }));
+                  }}
+                  className="flex-col h-auto py-2 px-4"
+                  title={relatedSearch?.title || `Page ${page}`}
+                >
+                  <span>wr={page}</span>
+                  {relatedSearch && (
+                    <span className="text-xs opacity-70 max-w-[80px] truncate">
+                      {relatedSearch.title}
+                    </span>
+                  )}
+                </Button>
+              );
+            })}
           </div>
         </div>
 
