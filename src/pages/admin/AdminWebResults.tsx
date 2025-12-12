@@ -12,10 +12,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, X, Search, ExternalLink } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface RelatedSearch {
+  id: string;
+  title: string;
+  web_result_page: number;
+}
 
 const AdminWebResults = () => {
   const { toast } = useToast();
   const [results, setResults] = useState<WebResult[]>([]);
+  const [relatedSearches, setRelatedSearches] = useState<RelatedSearch[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPage, setSelectedPage] = useState<number>(1);
@@ -34,7 +42,24 @@ const AdminWebResults = () => {
 
   useEffect(() => {
     fetchResults();
+    fetchRelatedSearches();
   }, [selectedPage]);
+
+  const fetchRelatedSearches = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('related_searches')
+        .select('id, title, web_result_page')
+        .is('blog_id', null)
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      setRelatedSearches(data || []);
+    } catch (error) {
+      console.error('Error fetching related searches:', error);
+    }
+  };
 
   const fetchResults = async () => {
     try {
@@ -312,13 +337,29 @@ const AdminWebResults = () => {
             </div>
             
             <div>
-              <Label>Logo URL</Label>
-              <Input
-                value={formData.logo_url}
-                onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                className="mt-1 admin-input"
-                placeholder="https://example.com/logo.png"
-              />
+              <Label>Related Search (determines page)</Label>
+              <Select
+                value={formData.web_result_page.toString()}
+                onValueChange={(value) => {
+                  const page = parseInt(value);
+                  setFormData({ ...formData, web_result_page: page });
+                  setSelectedPage(page);
+                }}
+              >
+                <SelectTrigger className="mt-1 admin-input">
+                  <SelectValue placeholder="Select related search" />
+                </SelectTrigger>
+                <SelectContent>
+                  {relatedSearches.map((search) => (
+                    <SelectItem key={search.id} value={search.web_result_page.toString()}>
+                      {search.title} (wr={search.web_result_page})
+                    </SelectItem>
+                  ))}
+                  {relatedSearches.length === 0 && (
+                    <SelectItem value="1" disabled>No related searches found</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="md:col-span-2">
@@ -338,6 +379,16 @@ const AdminWebResults = () => {
                 onChange={(e) => setFormData({ ...formData, original_link: e.target.value })}
                 className="mt-1 admin-input"
                 placeholder="https://www.fiverr.com"
+              />
+            </div>
+            
+            <div>
+              <Label>Logo URL</Label>
+              <Input
+                value={formData.logo_url}
+                onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                className="mt-1 admin-input"
+                placeholder="https://example.com/logo.png"
               />
             </div>
             
