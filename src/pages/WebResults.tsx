@@ -5,22 +5,37 @@ import { WebResult, LandingSettings } from "@/types/database";
 import { trackClick } from "@/lib/tracking";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
+interface RelatedSearch {
+  id: string;
+  title: string;
+  search_text: string;
+  web_result_page: number;
+}
+
 const WebResults = () => {
   const { wrPage } = useParams();
   const pageNumber = parseInt(wrPage || '1');
   const [results, setResults] = useState<WebResult[]>([]);
   const [settings, setSettings] = useState<LandingSettings | null>(null);
+  const [relatedSearch, setRelatedSearch] = useState<RelatedSearch | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = `Web Results - Page ${pageNumber}`;
     fetchData();
   }, [pageNumber]);
+
+  useEffect(() => {
+    if (relatedSearch) {
+      document.title = `${relatedSearch.title} - Web Results`;
+    } else {
+      document.title = `Web Results - Page ${pageNumber}`;
+    }
+  }, [relatedSearch, pageNumber]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [settingsRes, resultsRes] = await Promise.all([
+      const [settingsRes, resultsRes, relatedSearchRes] = await Promise.all([
         supabase.from('landing_settings').select('*').single(),
         supabase
           .from('web_results')
@@ -28,6 +43,12 @@ const WebResults = () => {
           .eq('web_result_page', pageNumber)
           .eq('is_active', true)
           .order('display_order', { ascending: true }),
+        supabase
+          .from('related_searches')
+          .select('id, title, search_text, web_result_page')
+          .eq('web_result_page', pageNumber)
+          .eq('is_active', true)
+          .maybeSingle(),
       ]);
 
       if (settingsRes.data) {
@@ -35,6 +56,9 @@ const WebResults = () => {
       }
       if (resultsRes.data) {
         setResults(resultsRes.data as WebResult[]);
+      }
+      if (relatedSearchRes.data) {
+        setRelatedSearch(relatedSearchRes.data as RelatedSearch);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -105,7 +129,15 @@ const WebResults = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
-
+          {/* Related Search Title */}
+          {relatedSearch && (
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-foreground">{relatedSearch.title}</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Showing results for: {relatedSearch.search_text}
+              </p>
+            </div>
+          )}
           {results.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">No results found for this page.</p>
