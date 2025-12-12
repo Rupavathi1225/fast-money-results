@@ -26,6 +26,7 @@ interface GeneratedResult {
   link: string;
   targetPage: number;
   selected: boolean;
+  isSponsored: boolean;
 }
 
 const AdminWebResults = () => {
@@ -304,10 +305,12 @@ const AdminWebResults = () => {
         link: r.link || '',
         targetPage: search.web_result_page,
         selected: true,
+        isSponsored: false,
       }));
 
       setGeneratedResults(generated);
-      toast({ title: "Success", description: "Generated 4 web results. Select which ones to save." });
+      setSelectedPage(search.web_result_page);
+      toast({ title: "Success", description: "Generated 6 web results. Select which ones to save." });
     } catch (error) {
       console.error('Error generating:', error);
       toast({ title: "Error", description: "Failed to generate web results.", variant: "destructive" });
@@ -337,7 +340,7 @@ const AdminWebResults = () => {
         web_result_page: r.targetPage,
         display_order: idx,
         is_active: true,
-        is_sponsored: false,
+        is_sponsored: r.isSponsored,
       }));
 
       const { error } = await supabase.from('web_results').insert(inserts);
@@ -390,7 +393,7 @@ const AdminWebResults = () => {
                   className="gap-2"
                 >
                   {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  Generate 4 Web Results
+                  Generate 6 Web Results
                 </Button>
               </div>
             </div>
@@ -403,7 +406,7 @@ const AdminWebResults = () => {
                   <span className="text-sm text-muted-foreground">(All results will appear on this page)</span>
                 </div>
                 {generatedResults.map((result, idx) => (
-                  <div key={idx} className="p-4 bg-secondary/50 rounded-lg border border-border/50 space-y-3">
+                  <div key={idx} className={`p-4 rounded-lg border space-y-3 ${result.isSponsored ? 'bg-amber-500/10 border-amber-500/50' : 'bg-secondary/50 border-border/50'}`}>
                     <div className="flex items-start gap-3">
                       <Checkbox
                         checked={result.selected}
@@ -414,18 +417,29 @@ const AdminWebResults = () => {
                         }}
                       />
                       <div className="flex-1 space-y-2">
-                        <div>
+                        <div className="flex items-center justify-between">
                           <Label className="text-xs text-muted-foreground">Title (3 words)</Label>
-                          <Input
-                            value={result.title}
-                            onChange={(e) => {
-                              const updated = [...generatedResults];
-                              updated[idx].title = e.target.value;
-                              setGeneratedResults(updated);
-                            }}
-                            className="mt-1 admin-input"
-                          />
+                          <div className="flex items-center gap-2">
+                            <Label className="text-xs text-muted-foreground">Sponsored</Label>
+                            <Switch
+                              checked={result.isSponsored}
+                              onCheckedChange={(checked) => {
+                                const updated = [...generatedResults];
+                                updated[idx].isSponsored = checked;
+                                setGeneratedResults(updated);
+                              }}
+                            />
+                          </div>
                         </div>
+                        <Input
+                          value={result.title}
+                          onChange={(e) => {
+                            const updated = [...generatedResults];
+                            updated[idx].title = e.target.value;
+                            setGeneratedResults(updated);
+                          }}
+                          className="admin-input"
+                        />
                         <div>
                           <Label className="text-xs text-muted-foreground">Description (15 words)</Label>
                           <Textarea

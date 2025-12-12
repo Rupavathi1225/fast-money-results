@@ -38,11 +38,11 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a web content generator. Generate exactly 4 web result entries. Each entry must have a title (exactly 3 words), description (exactly 15 words), and a real working URL to a relevant website. Respond ONLY with valid JSON, no markdown.",
+            content: "You are a web content generator. Generate exactly 6 web result entries. Each entry must have a title (exactly 3 words), description (exactly 15 words), and a real working URL to a relevant website. Respond ONLY with valid JSON, no markdown.",
           },
           {
             role: "user",
-            content: `Generate 4 web results for the search topic "${searchTitle}".
+            content: `Generate 6 web results for the search topic "${searchTitle}".
 
 Each result should be relevant to this search topic and include a real, working URL to an actual website.
 For example, if the topic is about earning money, include URLs like https://www.upwork.com, https://www.fiverr.com, etc.
@@ -52,6 +52,8 @@ Always use real, popular websites that actually exist and are relevant to the to
 Respond in this exact JSON format:
 {
   "results": [
+    {"title": "Three Word Title", "description": "Exactly fifteen words describing this result in a compelling way that makes users want to click.", "link": "https://www.example.com"},
+    {"title": "Three Word Title", "description": "Exactly fifteen words describing this result in a compelling way that makes users want to click.", "link": "https://www.example.com"},
     {"title": "Three Word Title", "description": "Exactly fifteen words describing this result in a compelling way that makes users want to click.", "link": "https://www.example.com"},
     {"title": "Three Word Title", "description": "Exactly fifteen words describing this result in a compelling way that makes users want to click.", "link": "https://www.example.com"},
     {"title": "Three Word Title", "description": "Exactly fifteen words describing this result in a compelling way that makes users want to click.", "link": "https://www.example.com"},
