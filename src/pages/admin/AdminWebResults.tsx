@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, X, Search, ExternalLink, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Search, ExternalLink, Sparkles, Loader2, Copy } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -226,9 +226,17 @@ const AdminWebResults = () => {
 
   const handleCopy = () => {
     const selectedData = results.filter(r => selectedIds.has(r.id));
-    const text = selectedData.map(r => `${r.title} - ${r.original_link}`).join('\n');
+    const baseUrl = window.location.origin;
+    const text = selectedData.map((r, idx) => `${baseUrl}/wr=${r.web_result_page}`).join('\n');
     navigator.clipboard.writeText(text);
-    toast({ title: "Copied to clipboard" });
+    toast({ title: "Copied links to clipboard" });
+  };
+
+  const handleCopyLink = (result: WebResult) => {
+    const baseUrl = window.location.origin;
+    const link = `${baseUrl}/wr=${result.web_result_page}`;
+    navigator.clipboard.writeText(link);
+    toast({ title: "Link copied", description: link });
   };
 
   const handleBulkActivate = async () => {
@@ -703,6 +711,14 @@ const AdminWebResults = () => {
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleCopyLink(result)}
+                      title="Copy link"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
                     <Button
                       variant="outline"
                       size="icon"
