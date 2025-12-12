@@ -195,14 +195,14 @@ const AdminCategories = () => {
   const handleCopy = () => {
     const selectedData = searches.filter(s => selectedIds.has(s.id));
     const baseUrl = window.location.origin;
-    const text = selectedData.map(s => `${baseUrl}/wr=${s.web_result_page}`).join('\n');
+    const text = selectedData.map(s => `${baseUrl}/wr/${s.web_result_page}`).join('\n');
     navigator.clipboard.writeText(text);
     toast({ title: "Copied links to clipboard" });
   };
 
   const handleCopyLink = (search: RelatedSearch) => {
     const baseUrl = window.location.origin;
-    const link = `${baseUrl}/wr=${search.web_result_page}`;
+    const link = `${baseUrl}/wr/${search.web_result_page}`;
     navigator.clipboard.writeText(link);
     toast({ title: "Link copied", description: link });
   };
