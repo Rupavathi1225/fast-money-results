@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.generate-blog-content]
 verify_jwt = false
+
+[functions.generate-web-results]
+verify_jwt = false

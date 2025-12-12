@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, X, Search, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Search, ExternalLink, Sparkles, Loader2 } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -18,6 +18,13 @@ interface RelatedSearch {
   id: string;
   title: string;
   web_result_page: number;
+}
+
+interface GeneratedResult {
+  title: string;
+  description: string;
+  targetPage: number;
+  selected: boolean;
 }
 
 const AdminWebResults = () => {
@@ -29,6 +36,9 @@ const AdminWebResults = () => {
   const [selectedPage, setSelectedPage] = useState<number>(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedRelatedSearch, setSelectedRelatedSearch] = useState<string>('');
+  const [generatedResults, setGeneratedResults] = useState<GeneratedResult[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -272,9 +282,189 @@ const AdminWebResults = () => {
     r.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleGenerateAIResults = async () => {
+    const search = relatedSearches.find(s => s.id === selectedRelatedSearch);
+    if (!search) {
+      toast({ title: "Error", description: "Please select a related search first.", variant: "destructive" });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-web-results', {
+        body: { searchTitle: search.title }
+      });
+
+      if (error) throw error;
+
+      const generated = (data.results || []).map((r: any, idx: number) => ({
+        title: r.title,
+        description: r.description,
+        targetPage: idx + 1,
+        selected: true,
+      }));
+
+      setGeneratedResults(generated);
+      toast({ title: "Success", description: "Generated 4 web results. Select which ones to save." });
+    } catch (error) {
+      console.error('Error generating:', error);
+      toast({ title: "Error", description: "Failed to generate web results.", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSaveGeneratedResults = async () => {
+    const toSave = generatedResults.filter(r => r.selected);
+    if (toSave.length === 0) {
+      toast({ title: "Error", description: "Please select at least one result to save.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const inserts = toSave.map((r, idx) => ({
+        title: r.title,
+        description: r.description,
+        original_link: '',
+        web_result_page: r.targetPage,
+        display_order: idx,
+        is_active: true,
+        is_sponsored: false,
+      }));
+
+      const { error } = await supabase.from('web_results').insert(inserts);
+      if (error) throw error;
+
+      toast({ title: "Success", description: `Saved ${toSave.length} web results.` });
+      setGeneratedResults([]);
+      setSelectedRelatedSearch('');
+      fetchResults();
+    } catch (error) {
+      console.error('Error saving:', error);
+      toast({ title: "Error", description: "Failed to save web results.", variant: "destructive" });
+    }
+  };
+
   return (
     <AdminLayout title="Web Results Editor">
       <div className="space-y-6">
+        {/* AI Generator Section */}
+        <div className="admin-card border-2 border-primary/30">
+          <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5" />
+            AI Web Results Generator
+          </h3>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Select Related Search</Label>
+                <Select
+                  value={selectedRelatedSearch}
+                  onValueChange={setSelectedRelatedSearch}
+                >
+                  <SelectTrigger className="mt-1 admin-input">
+                    <SelectValue placeholder="Choose a related search" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {relatedSearches.map((search) => (
+                      <SelectItem key={search.id} value={search.id}>
+                        {search.title} (wr={search.web_result_page})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  onClick={handleGenerateAIResults} 
+                  disabled={!selectedRelatedSearch || isGenerating}
+                  className="gap-2"
+                >
+                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  Generate 4 Web Results
+                </Button>
+              </div>
+            </div>
+
+            {/* Generated Results */}
+            {generatedResults.length > 0 && (
+              <div className="space-y-3 mt-4">
+                <Label className="text-base">Generated Results (select to save, assign pages):</Label>
+                {generatedResults.map((result, idx) => (
+                  <div key={idx} className="p-4 bg-secondary/50 rounded-lg border border-border/50 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={result.selected}
+                        onCheckedChange={(checked) => {
+                          const updated = [...generatedResults];
+                          updated[idx].selected = !!checked;
+                          setGeneratedResults(updated);
+                        }}
+                      />
+                      <div className="flex-1 space-y-2">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Title (3 words)</Label>
+                          <Input
+                            value={result.title}
+                            onChange={(e) => {
+                              const updated = [...generatedResults];
+                              updated[idx].title = e.target.value;
+                              setGeneratedResults(updated);
+                            }}
+                            className="mt-1 admin-input"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Description (15 words)</Label>
+                          <Textarea
+                            value={result.description}
+                            onChange={(e) => {
+                              const updated = [...generatedResults];
+                              updated[idx].description = e.target.value;
+                              setGeneratedResults(updated);
+                            }}
+                            className="mt-1 admin-input"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                      <div className="w-28">
+                        <Label className="text-xs text-muted-foreground">Assign Page</Label>
+                        <Select
+                          value={result.targetPage.toString()}
+                          onValueChange={(val) => {
+                            const updated = [...generatedResults];
+                            updated[idx].targetPage = parseInt(val);
+                            setGeneratedResults(updated);
+                          }}
+                        >
+                          <SelectTrigger className="mt-1 admin-input">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4].map((p) => (
+                              <SelectItem key={p} value={p.toString()}>wr={p}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="flex gap-2">
+                  <Button onClick={handleSaveGeneratedResults}>
+                    Save Selected Results
+                  </Button>
+                  <Button variant="outline" onClick={() => setGeneratedResults([])}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Page Selector */}
         <div className="flex items-center gap-4 flex-wrap">
           <Label>Select Page:</Label>
@@ -322,7 +512,7 @@ const AdminWebResults = () => {
         {/* Add/Edit Form */}
         <div className="admin-card">
           <h3 className="text-lg font-semibold text-primary mb-4">
-            {editingId ? 'Edit Web Result' : 'Add Web Result'} - Page wr={formData.web_result_page}
+            {editingId ? 'Edit Web Result' : 'Add Web Result Manually'} - Page wr={formData.web_result_page}
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
