@@ -300,7 +300,7 @@ const AdminWebResults = () => {
       const generated = (data.results || []).map((r: any, idx: number) => ({
         title: r.title,
         description: r.description,
-        targetPage: idx + 1,
+        targetPage: search.web_result_page,
         selected: true,
       }));
 
@@ -390,7 +390,10 @@ const AdminWebResults = () => {
             {/* Generated Results */}
             {generatedResults.length > 0 && (
               <div className="space-y-3 mt-4">
-                <Label className="text-base">Generated Results (select to save, assign pages):</Label>
+                <div className="flex items-center gap-2 mb-2">
+                  <Label className="text-base">Generated Results for page wr={generatedResults[0]?.targetPage}:</Label>
+                  <span className="text-sm text-muted-foreground">(All results will appear on this page)</span>
+                </div>
                 {generatedResults.map((result, idx) => (
                   <div key={idx} className="p-4 bg-secondary/50 rounded-lg border border-border/50 space-y-3">
                     <div className="flex items-start gap-3">
@@ -429,32 +432,12 @@ const AdminWebResults = () => {
                           />
                         </div>
                       </div>
-                      <div className="w-28">
-                        <Label className="text-xs text-muted-foreground">Assign Page</Label>
-                        <Select
-                          value={result.targetPage.toString()}
-                          onValueChange={(val) => {
-                            const updated = [...generatedResults];
-                            updated[idx].targetPage = parseInt(val);
-                            setGeneratedResults(updated);
-                          }}
-                        >
-                          <SelectTrigger className="mt-1 admin-input">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[1, 2, 3, 4].map((p) => (
-                              <SelectItem key={p} value={p.toString()}>wr={p}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
                     </div>
                   </div>
                 ))}
                 <div className="flex gap-2">
                   <Button onClick={handleSaveGeneratedResults}>
-                    Save Selected Results
+                    Save Selected Results to wr={generatedResults[0]?.targetPage}
                   </Button>
                   <Button variant="outline" onClick={() => setGeneratedResults([])}>
                     Clear
