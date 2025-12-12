@@ -159,12 +159,9 @@ const BlogPage = () => {
                 <Link
                   key={search.id}
                   to={`/wr/${search.web_result_page}`}
-                  className="flex items-center gap-3 px-4 py-3 bg-secondary/30 hover:bg-secondary/50 border border-border/50 hover:border-primary/30 rounded-lg text-foreground/80 hover:text-foreground transition-all duration-200"
+                  className="px-4 py-3 bg-secondary/30 hover:bg-secondary/50 border border-border/50 hover:border-primary/30 rounded-lg text-foreground/80 hover:text-foreground transition-all duration-200"
                 >
-                  <svg className="w-4 h-4 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                  <span>{search.title}</span>
+                  {search.title}
                 </Link>
               ))}
             </div>
