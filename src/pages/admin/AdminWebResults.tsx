@@ -227,14 +227,14 @@ const AdminWebResults = () => {
   const handleCopy = () => {
     const selectedData = results.filter(r => selectedIds.has(r.id));
     const baseUrl = window.location.origin;
-    const text = selectedData.map((r, idx) => `${baseUrl}/wr=${r.web_result_page}`).join('\n');
+    const text = selectedData.map((r, idx) => `${baseUrl}/wr/${r.web_result_page}`).join('\n');
     navigator.clipboard.writeText(text);
     toast({ title: "Copied links to clipboard" });
   };
 
   const handleCopyLink = (result: WebResult) => {
     const baseUrl = window.location.origin;
-    const link = `${baseUrl}/wr=${result.web_result_page}`;
+    const link = `${baseUrl}/wr/${result.web_result_page}`;
     navigator.clipboard.writeText(link);
     toast({ title: "Link copied", description: link });
   };
