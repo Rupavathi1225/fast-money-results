@@ -371,7 +371,14 @@ const AdminWebResults = () => {
                 <Label>Select Related Search</Label>
                 <Select
                   value={selectedRelatedSearch}
-                  onValueChange={setSelectedRelatedSearch}
+                  onValueChange={(value) => {
+                    setSelectedRelatedSearch(value);
+                    const search = relatedSearches.find(s => s.id === value);
+                    if (search) {
+                      setSelectedPage(search.web_result_page);
+                      setFormData(prev => ({ ...prev, web_result_page: search.web_result_page }));
+                    }
+                  }}
                 >
                   <SelectTrigger className="mt-1 admin-input">
                     <SelectValue placeholder="Choose a related search" />
