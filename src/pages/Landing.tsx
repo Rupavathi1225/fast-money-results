@@ -82,12 +82,12 @@ const Landing = () => {
               Related Searches
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-3 max-w-2xl mx-auto">
               {searches.map((search, index) => (
                 <button
                   key={search.id}
                   onClick={() => handleSearchClick(search)}
-                  className="search-box text-left group"
+                  className="search-box text-left group w-full"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <span className="text-foreground font-medium group-hover:text-primary transition-colors">
