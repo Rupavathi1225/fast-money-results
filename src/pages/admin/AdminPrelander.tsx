@@ -31,10 +31,12 @@ interface ExistingPrelander {
   web_result_page?: number;
 }
 
+const DEFAULT_MAIN_IMAGE = 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800&auto=format&fit=crop&q=60';
+
 const defaultSettings: PrelanderFormData = {
   is_enabled: false,
   logo_url: '',
-  main_image_url: '',
+  main_image_url: DEFAULT_MAIN_IMAGE,
   headline_text: 'Welcome to Our Platform',
   description_text: 'Join thousands of users already benefiting from our service.',
   email_placeholder: 'Enter your email',
