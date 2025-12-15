@@ -31,6 +31,7 @@ Generate a JSON object with these exact fields:
 - description_text: Persuasive description encouraging email signup (max 30 words)
 - button_text: Call-to-action button text (2-4 words)
 - email_placeholder: Email field placeholder text
+- image_keywords: 2-3 simple keywords for finding a relevant image (e.g., "money,finance" or "drama,korean" or "food,cooking")
 
 Respond with ONLY valid JSON, no markdown, no explanation.`;
 
@@ -73,16 +74,23 @@ Respond with ONLY valid JSON, no markdown, no explanation.`;
         headline_text: `Unlock ${webResultTitle} Benefits`,
         description_text: 'Join thousands of users who are already benefiting. Enter your email to get exclusive access.',
         button_text: 'Get Started Now',
-        email_placeholder: 'Enter your email address'
+        email_placeholder: 'Enter your email address',
+        image_keywords: webResultTitle.toLowerCase().split(' ').slice(0, 2).join(',')
       };
     }
 
-    // Generate a relevant image using Unsplash based on the title
-    const searchTerms = webResultTitle.toLowerCase().split(' ').slice(0, 2).join(',');
-    const mainImageUrl = `https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800&auto=format&fit=crop&q=60`;
+    // Generate a relevant image URL using Unsplash source with search keywords
+    const imageKeywords = generatedContent.image_keywords || webResultTitle.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(' ').slice(0, 2).join(',');
+    const encodedKeywords = encodeURIComponent(imageKeywords.replace(/,/g, ' '));
+    const mainImageUrl = `https://source.unsplash.com/800x600/?${encodedKeywords}`;
+    
+    console.log('Generated image URL with keywords:', imageKeywords, mainImageUrl);
 
     return new Response(JSON.stringify({
-      ...generatedContent,
+      headline_text: generatedContent.headline_text,
+      description_text: generatedContent.description_text,
+      button_text: generatedContent.button_text,
+      email_placeholder: generatedContent.email_placeholder,
       main_image_url: mainImageUrl,
       logo_url: '',
       button_color: '#00b4d8',
