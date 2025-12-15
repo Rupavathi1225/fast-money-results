@@ -7,7 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Edit, Plus, X, ExternalLink } from "lucide-react";
+import { Save, Edit, Plus, X, Sparkles, Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface PrelanderFormData {
   is_enabled: boolean;
@@ -54,6 +61,7 @@ const AdminPrelander = () => {
   const [selectedResultId, setSelectedResultId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [settings, setSettings] = useState<PrelanderFormData>(defaultSettings);
   const [isEditing, setIsEditing] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -120,14 +128,6 @@ const AdminPrelander = () => {
     return relatedSearches.find(rs => rs.web_result_page === pageNum);
   };
 
-  // Group web results by page (related search)
-  const groupedWebResults = webResults.reduce((acc, wr) => {
-    const page = wr.web_result_page;
-    if (!acc[page]) acc[page] = [];
-    acc[page].push(wr);
-    return acc;
-  }, {} as Record<number, WebResult[]>);
-
   const fetchPrelanderSettings = async () => {
     try {
       const { data, error } = await supabase
@@ -143,7 +143,7 @@ const AdminPrelander = () => {
         setSettings({
           is_enabled: d.is_enabled || false,
           logo_url: d.logo_url || '',
-          main_image_url: d.main_image_url || '',
+          main_image_url: d.main_image_url || DEFAULT_MAIN_IMAGE,
           headline_text: d.headline_text || defaultSettings.headline_text,
           description_text: d.description_text || defaultSettings.description_text,
           email_placeholder: d.email_placeholder || defaultSettings.email_placeholder,
@@ -174,6 +174,49 @@ const AdminPrelander = () => {
     setShowForm(true);
   };
 
+  const handleGenerateWithAI = async () => {
+    if (!selectedResultId) {
+      toast({ title: "Error", description: "Please select a web result first.", variant: "destructive" });
+      return;
+    }
+
+    const selectedResult = webResults.find(wr => wr.id === selectedResultId);
+    if (!selectedResult) return;
+
+    setGenerating(true);
+    try {
+      const response = await supabase.functions.invoke('generate-prelander', {
+        body: {
+          webResultTitle: selectedResult.title,
+          webResultDescription: selectedResult.description
+        }
+      });
+
+      if (response.error) throw response.error;
+
+      const generatedData = response.data;
+      
+      setSettings({
+        ...settings,
+        headline_text: generatedData.headline_text || settings.headline_text,
+        description_text: generatedData.description_text || settings.description_text,
+        button_text: generatedData.button_text || settings.button_text,
+        email_placeholder: generatedData.email_placeholder || settings.email_placeholder,
+        main_image_url: generatedData.main_image_url || DEFAULT_MAIN_IMAGE,
+        logo_url: generatedData.logo_url || '',
+        button_color: generatedData.button_color || '#00b4d8',
+        background_color: generatedData.background_color || '#0a0f1c',
+      });
+
+      toast({ title: "Success", description: "Prelander content generated with AI!" });
+    } catch (error) {
+      console.error('Error generating prelander:', error);
+      toast({ title: "Error", description: "Failed to generate content.", variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedResultId) {
       toast({ title: "Error", description: "Please select a web result.", variant: "destructive" });
@@ -186,7 +229,7 @@ const AdminPrelander = () => {
         web_result_id: selectedResultId,
         is_enabled: true,
         logo_url: settings.logo_url || null,
-        main_image_url: settings.main_image_url || null,
+        main_image_url: settings.main_image_url || DEFAULT_MAIN_IMAGE,
         headline_text: settings.headline_text || 'Welcome',
         headline_font_size: 48,
         headline_color: '#ffffff',
@@ -230,6 +273,12 @@ const AdminPrelander = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Get available web results (not already having a prelander, unless editing)
+  const getAvailableWebResults = () => {
+    if (isEditing) return webResults;
+    return webResults.filter(wr => !existingPrelanders.some(pl => pl.web_result_id === wr.id));
   };
 
   if (loading) {
@@ -293,97 +342,60 @@ const AdminPrelander = () => {
               </Button>
             </div>
 
-            {/* Select Web Result - Google Style UI */}
+            {/* Select Web Result - Dropdown */}
             <div>
-              <Label className="mb-3 block">Select Web Result</Label>
-              <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
-                {Object.entries(groupedWebResults).map(([pageNum, results]) => {
-                  const relatedSearch = getRelatedSearchForPage(Number(pageNum));
-                  const availableResults = isEditing 
-                    ? results 
-                    : results.filter(wr => !existingPrelanders.some(pl => pl.web_result_id === wr.id) || selectedResultId === wr.id);
-                  
-                  if (availableResults.length === 0) return null;
-                  
-                  return (
-                    <div key={pageNum} className="space-y-3">
-                      {/* Related Search Header */}
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-muted-foreground">Related Search {pageNum}:</span>
-                        <span className="font-medium text-primary">
-                          {relatedSearch?.title || `Page ${pageNum}`}
-                        </span>
-                      </div>
-                      
-                      {/* Web Results for this Related Search */}
-                      <div className="space-y-2 pl-4 border-l-2 border-border">
-                        {availableResults.map((result) => {
-                          const isSelected = selectedResultId === result.id;
-                          let domain = 'fastmoney.com';
-                          try {
-                            if (result.original_link) {
-                              domain = new URL(result.original_link).hostname;
-                            }
-                          } catch {
-                            domain = 'fastmoney.com';
-                          }
-                          
-                          return (
-                            <div
-                              key={result.id}
-                              onClick={() => setSelectedResultId(result.id)}
-                              className={`cursor-pointer p-3 rounded-lg transition-all ${
-                                isSelected 
-                                  ? 'bg-primary/10 border border-primary/50' 
-                                  : 'bg-muted/30 border border-transparent hover:bg-muted/50'
-                              }`}
-                            >
-                              {/* Domain and URL row */}
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                                {result.logo_url ? (
-                                  <img 
-                                    src={result.logo_url} 
-                                    alt="" 
-                                    className="w-4 h-4 rounded"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                    }}
-                                  />
-                                ) : (
-                                  <span className="w-4 h-4 rounded bg-primary/20 flex items-center justify-center text-[10px] text-primary font-bold">
-                                    {result.title.charAt(0).toUpperCase()}
-                                  </span>
-                                )}
-                                <span>{domain}</span>
-                                <ExternalLink className="w-3 h-3" />
-                              </div>
-                              
-                              {/* Title as link */}
-                              <h4 className={`text-base font-medium ${isSelected ? 'text-primary' : 'text-primary/80 hover:underline'}`}>
-                                {result.title}
-                              </h4>
-                              
-                              {/* Description */}
-                              {result.description && (
-                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                  {result.description}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {selectedResultId && (
-                <div className="mt-3 p-2 bg-primary/10 rounded text-sm text-primary">
-                  Selected: {webResults.find(wr => wr.id === selectedResultId)?.title}
-                </div>
-              )}
+              <Label className="mb-2 block">Select Web Result</Label>
+              <Select 
+                value={selectedResultId} 
+                onValueChange={setSelectedResultId}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose a web result..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {getAvailableWebResults().map((result) => {
+                    const relatedSearch = getRelatedSearchForPage(result.web_result_page);
+                    return (
+                      <SelectItem key={result.id} value={result.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{result.title}</span>
+                          <span className="text-xs text-muted-foreground">
+                            Page {result.web_result_page} - {relatedSearch?.title || 'N/A'}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Generate with AI Button */}
+            {selectedResultId && (
+              <div className="flex items-center gap-4">
+                <Button 
+                  onClick={handleGenerateWithAI} 
+                  disabled={generating}
+                  variant="outline"
+                  className="border-primary/50 text-primary hover:bg-primary/10"
+                >
+                  {generating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate with AI
+                    </>
+                  )}
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Auto-fill all fields based on selected web result
+                </span>
+              </div>
+            )}
 
             {/* Logo URL */}
             <div>
@@ -405,6 +417,16 @@ const AdminPrelander = () => {
                 className="mt-1"
                 placeholder="https://example.com/main-image.jpg"
               />
+              {settings.main_image_url && (
+                <div className="mt-2">
+                  <img 
+                    src={settings.main_image_url} 
+                    alt="Preview" 
+                    className="max-h-32 rounded-lg object-cover"
+                    onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Headline */}
@@ -460,32 +482,55 @@ const AdminPrelander = () => {
                   type="color"
                   value={settings.background_color}
                   onChange={(e) => setSettings({ ...settings, background_color: e.target.value })}
-                  className="h-10 w-16 p-1"
+                  className="w-16 h-10 p-1 cursor-pointer"
                 />
                 <Input
                   value={settings.background_color}
                   onChange={(e) => setSettings({ ...settings, background_color: e.target.value })}
-                  className="flex-1"
                   placeholder="#0a0f1c"
+                />
+              </div>
+            </div>
+
+            {/* Button Color */}
+            <div>
+              <Label>Button Color</Label>
+              <div className="flex gap-2 mt-1">
+                <Input
+                  type="color"
+                  value={settings.button_color}
+                  onChange={(e) => setSettings({ ...settings, button_color: e.target.value })}
+                  className="w-16 h-10 p-1 cursor-pointer"
+                />
+                <Input
+                  value={settings.button_color}
+                  onChange={(e) => setSettings({ ...settings, button_color: e.target.value })}
+                  placeholder="#00b4d8"
                 />
               </div>
             </div>
 
             {/* Background Image URL */}
             <div>
-              <Label>Background Image URL (optional)</Label>
+              <Label>Background Image URL (Optional)</Label>
               <Input
                 value={settings.background_image_url}
                 onChange={(e) => setSettings({ ...settings, background_image_url: e.target.value })}
                 className="mt-1"
-                placeholder="https://example.com/background.jpg"
+                placeholder="https://example.com/bg-image.jpg"
               />
             </div>
 
-            <Button onClick={handleSave} disabled={saving} className="w-full">
-              <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Saving...' : isEditing ? 'Update Pre-Landing Page' : 'Create Pre-Landing Page'}
-            </Button>
+            {/* Save Button */}
+            <div className="flex gap-2 pt-4">
+              <Button onClick={handleSave} disabled={saving || !selectedResultId}>
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? 'Saving...' : 'Save & Enable Prelander'}
+              </Button>
+              <Button variant="outline" onClick={() => setShowForm(false)}>
+                Cancel
+              </Button>
+            </div>
           </div>
         )}
       </div>
