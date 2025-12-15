@@ -547,7 +547,7 @@ const AdminBlogs = () => {
                     <div>
                       <Label>Select Related Searches for Landing Page (max 4)</Label>
                       <p className="text-sm text-muted-foreground mb-2">
-                        Selected searches will appear on landing page and redirect to /wr=1, /wr=2, etc.
+                        Selected searches will appear on landing page and redirect to /wr=1, /wr=2, etc. Edit text as needed.
                       </p>
                       <div className="space-y-2 border rounded-md p-3">
                         {generatedSearches.map((search, index) => (
@@ -558,19 +558,22 @@ const AdminBlogs = () => {
                               onCheckedChange={() => toggleSearchSelection(index)}
                               disabled={!selectedSearches.has(index) && selectedSearches.size >= 4}
                             />
-                            <label
-                              htmlFor={`search-${index}`}
-                              className={`text-sm cursor-pointer ${
-                                selectedSearches.has(index) ? "text-foreground" : "text-muted-foreground"
+                            <Input
+                              value={search}
+                              onChange={(e) => {
+                                const updated = [...generatedSearches];
+                                updated[index] = e.target.value;
+                                setGeneratedSearches(updated);
+                              }}
+                              className={`flex-1 text-sm ${
+                                selectedSearches.has(index) ? "border-primary" : ""
                               }`}
-                            >
-                              {search}
-                              {selectedSearches.has(index) && (
-                                <span className="ml-2 text-xs text-primary">
-                                  → /wr={Array.from(selectedSearches).sort().indexOf(index) + 1}
-                                </span>
-                              )}
-                            </label>
+                            />
+                            {selectedSearches.has(index) && (
+                              <span className="text-xs text-primary whitespace-nowrap">
+                                → /wr={Array.from(selectedSearches).sort().indexOf(index) + 1}
+                              </span>
+                            )}
                           </div>
                         ))}
                       </div>
