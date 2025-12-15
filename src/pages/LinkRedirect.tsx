@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult, PrelanderSettings } from "@/types/database";
-import { trackClick, getIpInfo } from "@/lib/tracking";
+import { trackClick } from "@/lib/tracking";
 
 const LinkRedirect = () => {
   const { linkId } = useParams();
@@ -47,34 +47,17 @@ const LinkRedirect = () => {
       const webResult = resultRes.data as WebResult;
       const prelander = prelanderRes.data as PrelanderSettings | null;
 
-      // Track the click
+      // Track the click first
       await trackClick(parseInt(linkId || '0'), resultId, document.referrer);
 
-      // Check if prelander is enabled
+      // Check if prelander is enabled - redirect to prelander page
       if (prelander && prelander.is_enabled) {
-        // Redirect to prelander page
         window.location.href = `/prelander?rid=${resultId}`;
         return;
       }
 
-      // No prelander, check country permissions and redirect directly
-      let targetUrl = webResult.original_link;
-
-      try {
-        const { country } = await getIpInfo();
-
-        const isWorldwide = webResult.country_permissions?.includes('worldwide');
-        const isCountryAllowed = webResult.country_permissions?.includes(country);
-
-        if (!isWorldwide && !isCountryAllowed && webResult.fallback_link) {
-          targetUrl = webResult.fallback_link;
-        }
-      } catch (e) {
-        console.log('Could not determine country');
-      }
-
-      // Redirect to the target URL
-      window.location.href = targetUrl;
+      // No prelander, redirect directly to original link
+      window.location.href = webResult.original_link;
     } catch (error) {
       console.error('Error in redirect:', error);
       setError('An error occurred');
