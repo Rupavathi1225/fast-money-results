@@ -22,15 +22,27 @@ const Landing = () => {
           .from('related_searches')
           .select('*')
           .eq('is_active', true)
-          .order('display_order', { ascending: true })
-          .limit(4), // Only show max 4 related searches on landing page
+          .in('web_result_page', [1, 2, 3, 4])
+          .order('web_result_page', { ascending: true })
+          .order('display_order', { ascending: true }),
       ]);
 
       if (settingsRes.data) {
         setSettings(settingsRes.data as LandingSettings);
       }
       if (searchesRes.data) {
-        setSearches(searchesRes.data as RelatedSearch[]);
+        // Get first search from each web_result_page (1, 2, 3, 4)
+        const allSearches = searchesRes.data as RelatedSearch[];
+        const uniquePageSearches: RelatedSearch[] = [];
+        const seenPages = new Set<number>();
+        
+        for (const search of allSearches) {
+          if (!seenPages.has(search.web_result_page) && uniquePageSearches.length < 4) {
+            uniquePageSearches.push(search);
+            seenPages.add(search.web_result_page);
+          }
+        }
+        setSearches(uniquePageSearches);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
