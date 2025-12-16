@@ -50,7 +50,8 @@ const BlogPage = () => {
         .select("*")
         .eq("blog_id", blog!.id)
         .eq("is_active", true)
-        .order("display_order", { ascending: true });
+        .order("display_order", { ascending: true })
+        .limit(4); // Only show max 4 related searches on blog page
       if (error) throw error;
       return data as RelatedSearch[];
     },
