@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Edit, Plus, X, Sparkles, Loader2 } from "lucide-react";
+import { Save, Edit, Plus, X, Sparkles, Loader2, Search } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -65,6 +65,7 @@ const AdminPrelander = () => {
   const [settings, setSettings] = useState<PrelanderFormData>(defaultSettings);
   const [isEditing, setIsEditing] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -302,11 +303,25 @@ const AdminPrelander = () => {
             </Button>
           </div>
 
+          {/* Search Box */}
+          <div className="relative max-w-md mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search prelanders by title or headline..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
           {existingPrelanders.length === 0 ? (
             <p className="text-muted-foreground text-sm">No prelanders created yet.</p>
           ) : (
             <div className="space-y-2">
-              {existingPrelanders.map((pl) => (
+              {existingPrelanders.filter(pl => 
+                (pl.web_result_title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                pl.headline_text.toLowerCase().includes(searchQuery.toLowerCase())
+              ).map((pl) => (
                 <div
                   key={pl.id}
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
@@ -326,6 +341,12 @@ const AdminPrelander = () => {
                   </div>
                 </div>
               ))}
+              {existingPrelanders.filter(pl => 
+                (pl.web_result_title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                pl.headline_text.toLowerCase().includes(searchQuery.toLowerCase())
+              ).length === 0 && searchQuery && (
+                <p className="text-muted-foreground text-sm">No prelanders matching "{searchQuery}"</p>
+              )}
             </div>
           )}
         </div>
@@ -400,23 +421,53 @@ const AdminPrelander = () => {
             {/* Logo URL */}
             <div>
               <Label>Logo URL</Label>
-              <Input
-                value={settings.logo_url}
-                onChange={(e) => setSettings({ ...settings, logo_url: e.target.value })}
-                className="mt-1"
-                placeholder="https://example.com/logo.png"
-              />
+              <div className="flex gap-2 mt-1">
+                <Input
+                  value={settings.logo_url}
+                  onChange={(e) => setSettings({ ...settings, logo_url: e.target.value })}
+                  className="flex-1"
+                  placeholder="https://example.com/logo.png"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setSettings({ ...settings, logo_url: 'https://images.unsplash.com/photo-1633158829585-23ba8f7c8caf?w=100&h=100&fit=crop' })}
+                >
+                  Use Default
+                </Button>
+              </div>
+              {settings.logo_url && (
+                <div className="mt-2">
+                  <img 
+                    src={settings.logo_url} 
+                    alt="Logo Preview" 
+                    className="max-h-16 rounded object-cover"
+                    onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Main Image URL */}
             <div>
               <Label>Main Image URL</Label>
-              <Input
-                value={settings.main_image_url}
-                onChange={(e) => setSettings({ ...settings, main_image_url: e.target.value })}
-                className="mt-1"
-                placeholder="https://example.com/main-image.jpg"
-              />
+              <div className="flex gap-2 mt-1">
+                <Input
+                  value={settings.main_image_url}
+                  onChange={(e) => setSettings({ ...settings, main_image_url: e.target.value })}
+                  className="flex-1"
+                  placeholder="https://example.com/main-image.jpg"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setSettings({ ...settings, main_image_url: DEFAULT_MAIN_IMAGE })}
+                >
+                  Use Default
+                </Button>
+              </div>
               {settings.main_image_url && (
                 <div className="mt-2">
                   <img 

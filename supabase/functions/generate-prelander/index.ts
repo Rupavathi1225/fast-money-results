@@ -32,6 +32,7 @@ Generate a JSON object with these exact fields:
 - button_text: Call-to-action button text (2-4 words)
 - email_placeholder: Email field placeholder text
 - image_keywords: 2-3 simple keywords for finding a relevant image (e.g., "money,finance" or "drama,korean" or "food,cooking")
+- logo_keywords: 1-2 simple keywords for finding a relevant logo/icon image (e.g., "money" or "finance" or "business")
 
 Respond with ONLY valid JSON, no markdown, no explanation.`;
 
@@ -84,7 +85,13 @@ Respond with ONLY valid JSON, no markdown, no explanation.`;
     const encodedKeywords = encodeURIComponent(imageKeywords.replace(/,/g, ' '));
     const mainImageUrl = `https://source.unsplash.com/800x600/?${encodedKeywords}`;
     
+    // Generate logo URL using Unsplash
+    const logoKeywords = generatedContent.logo_keywords || imageKeywords.split(',')[0];
+    const encodedLogoKeywords = encodeURIComponent(logoKeywords.replace(/,/g, ' '));
+    const logoUrl = `https://source.unsplash.com/100x100/?${encodedLogoKeywords},logo,icon`;
+    
     console.log('Generated image URL with keywords:', imageKeywords, mainImageUrl);
+    console.log('Generated logo URL with keywords:', logoKeywords, logoUrl);
 
     return new Response(JSON.stringify({
       headline_text: generatedContent.headline_text,
@@ -92,7 +99,7 @@ Respond with ONLY valid JSON, no markdown, no explanation.`;
       button_text: generatedContent.button_text,
       email_placeholder: generatedContent.email_placeholder,
       main_image_url: mainImageUrl,
-      logo_url: '',
+      logo_url: logoUrl,
       button_color: '#00b4d8',
       background_color: '#0a0f1c',
       background_image_url: ''

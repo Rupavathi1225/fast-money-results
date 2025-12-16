@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult, LandingSettings } from "@/types/database";
 import { trackClick } from "@/lib/tracking";
@@ -10,10 +10,13 @@ interface RelatedSearch {
   title: string;
   search_text: string;
   web_result_page: number;
+  blog_id: string | null;
 }
 
 const WebResults = () => {
   const { wrPage } = useParams();
+  const [searchParams] = useSearchParams();
+  const fromBlog = searchParams.get('from'); // e.g., blog slug
   const pageNumber = parseInt(wrPage || '1');
   const [results, setResults] = useState<WebResult[]>([]);
   const [settings, setSettings] = useState<LandingSettings | null>(null);
@@ -117,11 +120,11 @@ const WebResults = () => {
             {settings?.site_name || 'FastMoney'}
           </Link>
           <Link 
-            to="/landing" 
+            to={fromBlog ? `/blog/${fromBlog}` : "/landing"} 
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Search
+            {fromBlog ? 'Back to Blog' : 'Back to Search'}
           </Link>
         </div>
       </header>

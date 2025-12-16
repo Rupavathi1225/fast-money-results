@@ -31,7 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Copy, ExternalLink, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, ExternalLink, Sparkles, Loader2, Search } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
 
 interface Blog {
@@ -59,6 +59,7 @@ const AdminBlogs = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [generatedSearches, setGeneratedSearches] = useState<string[]>([]);
   const [selectedSearches, setSelectedSearches] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
@@ -523,6 +524,14 @@ const AdminBlogs = () => {
                             </>
                           )}
                         </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setFormData({ ...formData, featured_image_url: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800&auto=format&fit=crop&q=60' })}
+                          className="flex-shrink-0"
+                        >
+                          Use Default
+                        </Button>
                       </div>
                       <Input
                         id="featured_image_url"
@@ -606,10 +615,25 @@ const AdminBlogs = () => {
             </Dialog>
           </div>
 
+          {/* Search Box */}
+          <div className="relative max-w-md mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search blogs by title, slug, or category..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
           {/* Bulk Actions */}
           <div className="mb-4">
             <BulkActionToolbar
-              totalCount={blogs?.length || 0}
+              totalCount={blogs?.filter(b => 
+                b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                b.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (b.category || '').toLowerCase().includes(searchQuery.toLowerCase())
+              ).length || 0}
               selectedCount={selectedIds.size}
               allSelected={selectedIds.size === (blogs?.length || 0) && (blogs?.length || 0) > 0}
               onSelectAll={handleSelectAll}
@@ -638,7 +662,11 @@ const AdminBlogs = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {blogs?.map((blog) => (
+                  {blogs?.filter(b => 
+                    b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    b.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (b.category || '').toLowerCase().includes(searchQuery.toLowerCase())
+                  ).map((blog) => (
                     <TableRow key={blog.id}>
                       <TableCell>
                         <Checkbox
@@ -696,10 +724,14 @@ const AdminBlogs = () => {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {blogs?.length === 0 && (
+                  {blogs?.filter(b => 
+                    b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    b.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (b.category || '').toLowerCase().includes(searchQuery.toLowerCase())
+                  ).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        No blogs yet. Create your first blog!
+                        {searchQuery ? `No blogs matching "${searchQuery}"` : 'No blogs yet. Create your first blog!'}
                       </TableCell>
                     </TableRow>
                   )}
