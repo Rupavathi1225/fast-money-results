@@ -22,7 +22,6 @@ const Landing = () => {
           .from('related_searches')
           .select('*')
           .eq('is_active', true)
-          .is('blog_id', null) // Only show searches NOT linked to a blog
           .order('display_order', { ascending: true })
           .limit(4), // Only show max 4 related searches on landing page
       ]);
