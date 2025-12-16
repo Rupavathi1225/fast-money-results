@@ -158,7 +158,7 @@ const BlogPage = () => {
               {relatedSearches.map((search) => (
                 <Link
                   key={search.id}
-                  to={`/wr/${search.web_result_page}`}
+                  to={`/wr/${search.web_result_page}?from=${slug}`}
                   className="px-4 py-3 bg-secondary/30 hover:bg-secondary/50 border border-border/50 hover:border-primary/30 rounded-lg text-foreground/80 hover:text-foreground transition-all duration-200"
                 >
                   {search.title}
