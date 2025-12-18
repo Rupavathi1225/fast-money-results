@@ -123,14 +123,17 @@ const BlogPage = () => {
               </svg>
               <h2 className="text-xl font-semibold text-foreground">Related Searches</h2>
             </div>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               {relatedSearches.map((search) => (
                 <Link
                   key={search.id}
                   to={`/wr/${search.web_result_page}?from=${slug}`}
-                  className="px-4 py-3 bg-secondary/30 hover:bg-secondary/50 border border-border/50 hover:border-primary/30 rounded-lg text-foreground/80 hover:text-foreground transition-all duration-200"
+                  className="flex items-center justify-between px-4 py-3 border border-border/60 hover:border-primary/50 rounded-md text-primary hover:text-primary/80 transition-all duration-200 group"
                 >
-                  {search.title}
+                  <span className="text-sm">{search.title}</span>
+                  <svg className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </Link>
               ))}
             </div>
