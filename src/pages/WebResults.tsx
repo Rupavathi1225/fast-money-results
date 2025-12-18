@@ -93,9 +93,11 @@ const WebResults = () => {
       if (resultsRes.data) {
         setResults(resultsRes.data as WebResult[]);
         
-        // If we have a single result with blog_id, fetch the blog
+        // If we have a single result, fetch blog and related search for that result
         if (resultId && resultsRes.data.length > 0) {
           const webResult = resultsRes.data[0] as WebResult & { blog_id?: string };
+          
+          // Fetch blog if blog_id exists
           if (webResult.blog_id) {
             const { data: blogData } = await supabase
               .from('blogs')
@@ -106,12 +108,23 @@ const WebResults = () => {
               setBlog(blogData);
             }
           }
+          
+          // Fetch related search for this web result's page
+          const { data: relatedSearchData } = await supabase
+            .from('related_searches')
+            .select('id, title, search_text, web_result_page, blog_id')
+            .eq('web_result_page', webResult.web_result_page)
+            .eq('is_active', true)
+            .maybeSingle();
+          if (relatedSearchData) {
+            setRelatedSearch(relatedSearchData as RelatedSearch);
+          }
         }
       }
-      if (relatedSearchRes.data) {
+      if (!resultId && relatedSearchRes.data) {
         setRelatedSearch(relatedSearchRes.data as RelatedSearch);
         // Also fetch blog from related search if not already fetched
-        if (!resultId && relatedSearchRes.data.blog_id) {
+        if (relatedSearchRes.data.blog_id) {
           const { data: blogData } = await supabase
             .from('blogs')
             .select('id, title')
@@ -205,8 +218,46 @@ const WebResults = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
-          {/* Blog Name and Related Search Title */}
-          {(blog || relatedSearch) && (
+          {/* Single Result Detail View */}
+          {resultId && results.length > 0 && (
+            <div className="mb-8 p-6 bg-secondary/30 rounded-lg border border-border/30">
+              <div className="space-y-3">
+                <div>
+                  <span className="text-xs text-muted-foreground">Title:</span>
+                  <p className="text-lg font-semibold text-foreground">{results[0].title}</p>
+                </div>
+                {blog && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">Blog:</span>
+                    <p className="text-primary">{blog.title}</p>
+                  </div>
+                )}
+                {relatedSearch && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">Related Search:</span>
+                    <p className="text-foreground">{relatedSearch.title}</p>
+                  </div>
+                )}
+                <div>
+                  <span className="text-xs text-muted-foreground">Original Link:</span>
+                  <p className="text-primary break-all">{results[0].original_link}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Date:</span>
+                  <p className="text-foreground">
+                    {new Date(results[0].created_at).toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    }).replace(/\//g, '/')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Blog Name and Related Search Title - only for non-single result view */}
+          {!resultId && (blog || relatedSearch) && (
             <div className="mb-6">
               {blog && (
                 <p className="text-sm text-primary mb-1">Blog: {blog.title}</p>
