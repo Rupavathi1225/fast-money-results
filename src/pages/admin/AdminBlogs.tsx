@@ -289,7 +289,7 @@ const AdminBlogs = () => {
   };
 
   const copyLink = (blogId: string, index: number) => {
-    const url = `${window.location.origin}/p=${index + 1}`;
+    const url = `${window.location.origin}/p/${index + 1}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Link copied to clipboard" });
   };
@@ -350,7 +350,7 @@ const AdminBlogs = () => {
     const selectedData = blogs.filter(b => selectedIds.has(b.id));
     const text = selectedData.map((b, idx) => {
       const blogIndex = blogs.findIndex(blog => blog.id === b.id);
-      return `${b.title} - ${window.location.origin}/p=${blogIndex + 1}`;
+      return `${b.title} - ${window.location.origin}/p/${blogIndex + 1}`;
     }).join('\n');
     navigator.clipboard.writeText(text);
     toast({ title: "Copied to clipboard" });
