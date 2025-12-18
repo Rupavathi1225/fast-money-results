@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, X, Link, Loader2 } from "lucide-react";
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, X, Link, Loader2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -37,6 +37,12 @@ const AdminBulkEditor = () => {
   const [fileName, setFileName] = useState<string>("");
   const [sheetUrl, setSheetUrl] = useState<string>("");
   const [updateResults, setUpdateResults] = useState<{ success: number; failed: number } | null>(null);
+
+  // Manual entry state
+  const [manualName, setManualName] = useState("");
+  const [manualUrlLink, setManualUrlLink] = useState("");
+  const [manualWebResultTitle, setManualWebResultTitle] = useState("");
+  const [manualOriginalLink, setManualOriginalLink] = useState("");
 
   // Fetch all web results for matching
   const { data: webResults = [] } = useQuery({
@@ -388,6 +394,84 @@ const AdminBulkEditor = () => {
     setUpdateResults(null);
   };
 
+  const handleManualAdd = () => {
+    if (!manualName.trim() || !manualUrlLink.trim()) {
+      toast({
+        title: "Missing required fields",
+        description: "Please enter both Name and Url Link",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!manualWebResultTitle.trim() && !manualOriginalLink.trim()) {
+      toast({
+        title: "Missing matching field",
+        description: "Please enter either Web Result Title or Original Link for matching",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let matchedResult: ParsedRow["matchedResult"];
+    let status: ParsedRow["status"] = "not_found";
+    let errorMessage: string | undefined;
+
+    // Try to match by title first, then by URL
+    if (manualWebResultTitle.trim()) {
+      const match = webResults.find((r) => r.title.toLowerCase() === manualWebResultTitle.trim().toLowerCase());
+      if (match) {
+        matchedResult = match;
+        status = "matched";
+      } else {
+        errorMessage = "No web result found with this title";
+      }
+    } else if (manualOriginalLink.trim()) {
+      const match = webResults.find(
+        (r) => r.original_link.toLowerCase() === manualOriginalLink.trim().toLowerCase()
+      );
+      if (match) {
+        matchedResult = match;
+        status = "matched";
+      } else {
+        errorMessage = "No web result found with this URL";
+      }
+    }
+
+    const newRow: ParsedRow = {
+      rowIndex: parsedRows.length + 1,
+      web_result_id: manualWebResultTitle.trim() || undefined,
+      old_url: manualOriginalLink.trim() || undefined,
+      new_title: manualName.trim(),
+      new_url: manualUrlLink.trim(),
+      matchedResult,
+      status,
+      errorMessage,
+      selected: status === "matched",
+    };
+
+    setParsedRows((prev) => [...prev, newRow]);
+
+    // Clear manual inputs
+    setManualName("");
+    setManualUrlLink("");
+    setManualWebResultTitle("");
+    setManualOriginalLink("");
+
+    if (status === "matched") {
+      toast({
+        title: "Entry added",
+        description: "Manual entry matched and added to the list",
+      });
+    } else {
+      toast({
+        title: "Entry added (not matched)",
+        description: errorMessage || "Entry added but no matching web result found",
+        variant: "destructive",
+      });
+    }
+  };
+
   const matchedCount = parsedRows.filter((r) => r.status === "matched").length;
   const selectedCount = parsedRows.filter((r) => r.selected).length;
 
@@ -469,6 +553,64 @@ const AdminBulkEditor = () => {
             <p className="text-xs text-muted-foreground">
               Note: Google Sheet must be publicly shared (Anyone with the link can view)
             </p>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-sm text-muted-foreground">OR</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            {/* Manual Entry */}
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Add Entry Manually</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Name (new title) *</label>
+                  <Input
+                    placeholder="Enter new title..."
+                    value={manualName}
+                    onChange={(e) => setManualName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Url Link (new URL) *</label>
+                  <Input
+                    placeholder="https://example.com/new-url"
+                    value={manualUrlLink}
+                    onChange={(e) => setManualUrlLink(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Web Result Title (for matching)</label>
+                  <Input
+                    placeholder="Enter existing web result title..."
+                    value={manualWebResultTitle}
+                    onChange={(e) => setManualWebResultTitle(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Original Link (for matching)</label>
+                  <Input
+                    placeholder="https://example.com/existing-url"
+                    value={manualOriginalLink}
+                    onChange={(e) => setManualOriginalLink(e.target.value)}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                * Required fields. Enter either Web Result Title or Original Link for matching.
+              </p>
+              <Button
+                onClick={handleManualAdd}
+                variant="outline"
+                className="flex items-center gap-2"
+                disabled={!manualName.trim() || !manualUrlLink.trim() || (!manualWebResultTitle.trim() && !manualOriginalLink.trim())}
+              >
+                <Plus className="w-4 h-4" />
+                Add Entry
+              </Button>
+            </div>
 
             {updateResults && (
               <div className="mt-4 p-4 rounded-lg bg-muted">
