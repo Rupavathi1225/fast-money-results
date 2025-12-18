@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, X, Link, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -32,7 +33,9 @@ const AdminBulkEditor = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isFetchingSheet, setIsFetchingSheet] = useState(false);
   const [fileName, setFileName] = useState<string>("");
+  const [sheetUrl, setSheetUrl] = useState<string>("");
   const [updateResults, setUpdateResults] = useState<{ success: number; failed: number } | null>(null);
 
   // Fetch all web results for matching
@@ -47,6 +50,94 @@ const AdminBulkEditor = () => {
       return data || [];
     },
   });
+
+  const processJsonData = (jsonData: Record<string, string>[]) => {
+    if (jsonData.length === 0) {
+      toast({
+        title: "Empty data",
+        description: "No data found to process",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    // Validate required columns
+    const firstRow = jsonData[0];
+    const hasNewTitle = "Name" in firstRow;
+    const hasNewUrl = "Url Link" in firstRow;
+    const hasWebResultTitle = "Web Result Title" in firstRow;
+    const hasOriginalLink = "Original Link" in firstRow;
+
+    if (!hasNewTitle || !hasNewUrl) {
+      toast({
+        title: "Missing required columns",
+        description: "Data must contain 'Name' and 'Url Link' columns",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    if (!hasWebResultTitle && !hasOriginalLink) {
+      toast({
+        title: "Missing matching column",
+        description: "Data must contain either 'Web Result Title' or 'Original Link' column for matching",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    // Parse and match rows
+    const parsed: ParsedRow[] = jsonData.map((row, index) => {
+      const webResultTitle = row["Web Result Title"]?.trim();
+      const originalLink = row["Original Link"]?.trim();
+      const newTitle = row["Name"]?.trim() || "";
+      const newUrl = row["Url Link"]?.trim() || "";
+
+      let matchedResult: ParsedRow["matchedResult"];
+      let status: ParsedRow["status"] = "not_found";
+      let errorMessage: string | undefined;
+
+      // Try to match by title first, then by URL
+      if (webResultTitle) {
+        const match = webResults.find((r) => r.title.toLowerCase() === webResultTitle.toLowerCase());
+        if (match) {
+          matchedResult = match;
+          status = "matched";
+        } else {
+          errorMessage = "No web result found with this title";
+        }
+      } else if (originalLink) {
+        const match = webResults.find(
+          (r) => r.original_link.toLowerCase() === originalLink.toLowerCase()
+        );
+        if (match) {
+          matchedResult = match;
+          status = "matched";
+        } else {
+          errorMessage = "No web result found with this URL";
+        }
+      }
+
+      if (!newTitle || !newUrl) {
+        status = "error";
+        errorMessage = "Missing Name or Url Link";
+      }
+
+      return {
+        rowIndex: index + 1,
+        web_result_id: webResultTitle,
+        old_url: originalLink,
+        new_title: newTitle,
+        new_url: newUrl,
+        matchedResult,
+        status,
+        errorMessage,
+        selected: false,
+      };
+    });
+
+    return parsed;
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,6 +156,7 @@ const AdminBulkEditor = () => {
     }
 
     setFileName(file.name);
+    setSheetUrl("");
     setUpdateResults(null);
 
     try {
@@ -74,97 +166,15 @@ const AdminBulkEditor = () => {
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet);
 
-      if (jsonData.length === 0) {
+      const parsed = processJsonData(jsonData);
+      if (parsed) {
+        setParsedRows(parsed);
+        const matchedCount = parsed.filter((r) => r.status === "matched").length;
         toast({
-          title: "Empty file",
-          description: "The uploaded file contains no data",
-          variant: "destructive",
+          title: "File parsed successfully",
+          description: `${parsed.length} rows found, ${matchedCount} matched to existing web results`,
         });
-        return;
       }
-
-      // Validate required columns
-      const firstRow = jsonData[0];
-      const hasNewTitle = "Name" in firstRow;
-      const hasNewUrl = "Url Link" in firstRow;
-      const hasWebResultTitle = "Web Result Title" in firstRow;
-      const hasOriginalLink = "Original Link" in firstRow;
-
-      if (!hasNewTitle || !hasNewUrl) {
-        toast({
-          title: "Missing required columns",
-          description: "File must contain 'Name' and 'Url Link' columns",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!hasWebResultTitle && !hasOriginalLink) {
-        toast({
-          title: "Missing matching column",
-          description: "File must contain either 'Web Result Title' or 'Original Link' column for matching",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Parse and match rows
-      const parsed: ParsedRow[] = jsonData.map((row, index) => {
-        const webResultTitle = row["Web Result Title"]?.trim();
-        const originalLink = row["Original Link"]?.trim();
-        const newTitle = row["Name"]?.trim() || "";
-        const newUrl = row["Url Link"]?.trim() || "";
-
-        let matchedResult: ParsedRow["matchedResult"];
-        let status: ParsedRow["status"] = "not_found";
-        let errorMessage: string | undefined;
-
-        // Try to match by title first, then by URL
-        if (webResultTitle) {
-          const match = webResults.find((r) => r.title.toLowerCase() === webResultTitle.toLowerCase());
-          if (match) {
-            matchedResult = match;
-            status = "matched";
-          } else {
-            errorMessage = "No web result found with this title";
-          }
-        } else if (originalLink) {
-          const match = webResults.find(
-            (r) => r.original_link.toLowerCase() === originalLink.toLowerCase()
-          );
-          if (match) {
-            matchedResult = match;
-            status = "matched";
-          } else {
-            errorMessage = "No web result found with this URL";
-          }
-        }
-
-        if (!newTitle || !newUrl) {
-          status = "error";
-          errorMessage = "Missing Name or Url Link";
-        }
-
-        return {
-          rowIndex: index + 1,
-          web_result_id: webResultTitle,
-          old_url: originalLink,
-          new_title: newTitle,
-          new_url: newUrl,
-          matchedResult,
-          status,
-          errorMessage,
-          selected: false,
-        };
-      });
-
-      setParsedRows(parsed);
-
-      const matchedCount = parsed.filter((r) => r.status === "matched").length;
-      toast({
-        title: "File parsed successfully",
-        description: `${parsed.length} rows found, ${matchedCount} matched to existing web results`,
-      });
     } catch (error) {
       console.error("Error parsing file:", error);
       toast({
@@ -177,6 +187,74 @@ const AdminBulkEditor = () => {
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const extractSheetId = (url: string): string | null => {
+    // Match patterns like:
+    // https://docs.google.com/spreadsheets/d/SHEET_ID/edit
+    // https://docs.google.com/spreadsheets/d/SHEET_ID/
+    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    return match ? match[1] : null;
+  };
+
+  const handleGoogleSheetFetch = async () => {
+    if (!sheetUrl.trim()) {
+      toast({
+        title: "No URL provided",
+        description: "Please enter a Google Sheet URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const sheetId = extractSheetId(sheetUrl);
+    if (!sheetId) {
+      toast({
+        title: "Invalid Google Sheet URL",
+        description: "Please enter a valid Google Sheets URL (e.g., https://docs.google.com/spreadsheets/d/...)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsFetchingSheet(true);
+    setFileName("");
+    setUpdateResults(null);
+
+    try {
+      // Fetch as CSV (sheet must be publicly shared)
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+      const response = await fetch(csvUrl);
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch sheet. Make sure it's publicly shared.");
+      }
+
+      const csvText = await response.text();
+      const workbook = XLSX.read(csvText, { type: "string" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet);
+
+      const parsed = processJsonData(jsonData);
+      if (parsed) {
+        setParsedRows(parsed);
+        const matchedCount = parsed.filter((r) => r.status === "matched").length;
+        toast({
+          title: "Google Sheet loaded successfully",
+          description: `${parsed.length} rows found, ${matchedCount} matched to existing web results`,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching Google Sheet:", error);
+      toast({
+        title: "Error loading Google Sheet",
+        description: "Make sure the sheet is publicly shared (Anyone with the link can view)",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFetchingSheet(false);
     }
   };
 
@@ -262,6 +340,7 @@ const AdminBulkEditor = () => {
       // Clear parsed rows after successful update
       setParsedRows([]);
       setFileName("");
+      setSheetUrl("");
     } else {
       toast({
         title: "Update failed",
@@ -274,6 +353,7 @@ const AdminBulkEditor = () => {
   const clearFile = () => {
     setParsedRows([]);
     setFileName("");
+    setSheetUrl("");
     setUpdateResults(null);
   };
 
@@ -295,7 +375,8 @@ const AdminBulkEditor = () => {
               Required columns: Name, Url Link, and either Web Result Title or Original Link for matching.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* File Upload */}
             <div className="flex items-center gap-4">
               <input
                 ref={fileInputRef}
@@ -321,6 +402,42 @@ const AdminBulkEditor = () => {
                 </div>
               )}
             </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-sm text-muted-foreground">OR</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            {/* Google Sheet URL */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 max-w-md">
+                <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Paste Google Sheet URL..."
+                  value={sheetUrl}
+                  onChange={(e) => setSheetUrl(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button
+                onClick={handleGoogleSheetFetch}
+                disabled={isFetchingSheet || !sheetUrl.trim()}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                {isFetchingSheet ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="w-4 h-4" />
+                )}
+                {isFetchingSheet ? "Loading..." : "Load Sheet"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Note: Google Sheet must be publicly shared (Anyone with the link can view)
+            </p>
 
             {updateResults && (
               <div className="mt-4 p-4 rounded-lg bg-muted">
