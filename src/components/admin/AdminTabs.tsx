@@ -12,6 +12,7 @@ const AdminTabs = () => {
     if (location.pathname.includes('/admin/prelander')) return 'prelander';
     if (location.pathname.includes('/admin/blogs')) return 'blogs';
     if (location.pathname.includes('/admin/analytics')) return 'analytics';
+    if (location.pathname.includes('/admin/bulk-web-result-editor')) return 'bulk';
     return 'landing';
   };
 
@@ -34,6 +35,9 @@ const AdminTabs = () => {
         break;
       case 'analytics':
         navigate('/admin/analytics');
+        break;
+      case 'bulk':
+        navigate('/admin/bulk-web-result-editor');
         break;
     }
   };
@@ -58,6 +62,9 @@ const AdminTabs = () => {
         </TabsTrigger>
         <TabsTrigger value="analytics" className="px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
           Analytics
+        </TabsTrigger>
+        <TabsTrigger value="bulk" className="px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          Bulk Editor
         </TabsTrigger>
       </TabsList>
     </Tabs>
