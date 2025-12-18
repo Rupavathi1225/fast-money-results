@@ -93,21 +93,9 @@ const WebResults = () => {
       if (resultsRes.data) {
         setResults(resultsRes.data as WebResult[]);
         
-        // If we have a single result, fetch blog and related search for that result
+        // If we have a single result, fetch related search and blog for that result
         if (resultId && resultsRes.data.length > 0) {
-          const webResult = resultsRes.data[0] as WebResult & { blog_id?: string };
-          
-          // Fetch blog if blog_id exists
-          if (webResult.blog_id) {
-            const { data: blogData } = await supabase
-              .from('blogs')
-              .select('id, title')
-              .eq('id', webResult.blog_id)
-              .maybeSingle();
-            if (blogData) {
-              setBlog(blogData);
-            }
-          }
+          const webResult = resultsRes.data[0] as WebResult;
           
           // Fetch related search for this web result's page
           const { data: relatedSearchData } = await supabase
@@ -116,8 +104,21 @@ const WebResults = () => {
             .eq('web_result_page', webResult.web_result_page)
             .eq('is_active', true)
             .maybeSingle();
+          
           if (relatedSearchData) {
             setRelatedSearch(relatedSearchData as RelatedSearch);
+            
+            // Fetch blog from the related search's blog_id
+            if (relatedSearchData.blog_id) {
+              const { data: blogData } = await supabase
+                .from('blogs')
+                .select('id, title')
+                .eq('id', relatedSearchData.blog_id)
+                .maybeSingle();
+              if (blogData) {
+                setBlog(blogData);
+              }
+            }
           }
         }
       }
