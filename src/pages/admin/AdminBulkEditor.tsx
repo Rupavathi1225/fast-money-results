@@ -85,24 +85,24 @@ const AdminBulkEditor = () => {
 
       // Validate required columns
       const firstRow = jsonData[0];
-      const hasNewTitle = "new_title" in firstRow;
-      const hasNewUrl = "new_url" in firstRow;
-      const hasWebResultId = "web_result_id" in firstRow;
-      const hasOldUrl = "old_url" in firstRow;
+      const hasNewTitle = "Name" in firstRow;
+      const hasNewUrl = "Url Link" in firstRow;
+      const hasWebResultTitle = "Web Result Title" in firstRow;
+      const hasOriginalLink = "Original Link" in firstRow;
 
       if (!hasNewTitle || !hasNewUrl) {
         toast({
           title: "Missing required columns",
-          description: "File must contain 'new_title' and 'new_url' columns",
+          description: "File must contain 'Name' and 'Url Link' columns",
           variant: "destructive",
         });
         return;
       }
 
-      if (!hasWebResultId && !hasOldUrl) {
+      if (!hasWebResultTitle && !hasOriginalLink) {
         toast({
           title: "Missing matching column",
-          description: "File must contain either 'web_result_id' or 'old_url' column for matching",
+          description: "File must contain either 'Web Result Title' or 'Original Link' column for matching",
           variant: "destructive",
         });
         return;
@@ -110,27 +110,27 @@ const AdminBulkEditor = () => {
 
       // Parse and match rows
       const parsed: ParsedRow[] = jsonData.map((row, index) => {
-        const webResultId = row.web_result_id?.trim();
-        const oldUrl = row.old_url?.trim();
-        const newTitle = row.new_title?.trim() || "";
-        const newUrl = row.new_url?.trim() || "";
+        const webResultTitle = row["Web Result Title"]?.trim();
+        const originalLink = row["Original Link"]?.trim();
+        const newTitle = row["Name"]?.trim() || "";
+        const newUrl = row["Url Link"]?.trim() || "";
 
         let matchedResult: ParsedRow["matchedResult"];
         let status: ParsedRow["status"] = "not_found";
         let errorMessage: string | undefined;
 
-        // Try to match by ID first, then by URL
-        if (webResultId) {
-          const match = webResults.find((r) => r.id === webResultId);
+        // Try to match by title first, then by URL
+        if (webResultTitle) {
+          const match = webResults.find((r) => r.title.toLowerCase() === webResultTitle.toLowerCase());
           if (match) {
             matchedResult = match;
             status = "matched";
           } else {
-            errorMessage = "No web result found with this ID";
+            errorMessage = "No web result found with this title";
           }
-        } else if (oldUrl) {
+        } else if (originalLink) {
           const match = webResults.find(
-            (r) => r.original_link.toLowerCase() === oldUrl.toLowerCase()
+            (r) => r.original_link.toLowerCase() === originalLink.toLowerCase()
           );
           if (match) {
             matchedResult = match;
@@ -142,13 +142,13 @@ const AdminBulkEditor = () => {
 
         if (!newTitle || !newUrl) {
           status = "error";
-          errorMessage = "Missing new_title or new_url";
+          errorMessage = "Missing Name or Url Link";
         }
 
         return {
           rowIndex: index + 1,
-          web_result_id: webResultId,
-          old_url: oldUrl,
+          web_result_id: webResultTitle,
+          old_url: originalLink,
           new_title: newTitle,
           new_url: newUrl,
           matchedResult,
@@ -290,9 +290,9 @@ const AdminBulkEditor = () => {
               <FileSpreadsheet className="w-5 h-5" />
               Bulk Web Result Editor
             </CardTitle>
-            <CardDescription>
+          <CardDescription>
               Upload a CSV or XLSX file to bulk update web result titles and URLs.
-              Required columns: new_title, new_url, and either web_result_id or old_url for matching.
+              Required columns: Name, Url Link, and either Web Result Title or Original Link for matching.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -449,23 +449,23 @@ const AdminBulkEditor = () => {
             <div>
               <p className="font-medium text-foreground mb-2">Required Columns:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li><code className="bg-muted px-1 rounded">new_title</code> - The new title for the web result</li>
-                <li><code className="bg-muted px-1 rounded">new_url</code> - The new URL for the web result</li>
+                <li><code className="bg-muted px-1 rounded">Name</code> - The new title for the web result</li>
+                <li><code className="bg-muted px-1 rounded">Url Link</code> - The new URL for the web result</li>
               </ul>
             </div>
             <div>
               <p className="font-medium text-foreground mb-2">Matching Columns (at least one required):</p>
               <ul className="list-disc list-inside space-y-1">
-                <li><code className="bg-muted px-1 rounded">web_result_id</code> - The UUID of the web result (preferred)</li>
-                <li><code className="bg-muted px-1 rounded">old_url</code> - The current URL of the web result to match</li>
+                <li><code className="bg-muted px-1 rounded">Web Result Title</code> - The current title of the web result (preferred)</li>
+                <li><code className="bg-muted px-1 rounded">Original Link</code> - The current URL of the web result to match</li>
               </ul>
             </div>
             <div>
               <p className="font-medium text-foreground mb-2">Example CSV:</p>
               <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-{`web_result_id,new_title,new_url
-abc-123-def,New Title Here,https://example.com/new-url
-,Old URL Match Title,https://example.com/another`}
+{`Web Result Title,Name,Url Link
+Old Title Here,New Title Here,https://example.com/new-url
+Another Old Title,New Title,https://example.com/another`}
               </pre>
             </div>
           </CardContent>
