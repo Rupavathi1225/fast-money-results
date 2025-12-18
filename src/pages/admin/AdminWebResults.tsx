@@ -10,15 +10,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, X, Search, ExternalLink, Sparkles, Loader2, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Search, ExternalLink, Sparkles, Loader2, Copy, ChevronDown } from "lucide-react";
 import { exportToCSV } from "@/lib/csvExport";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface RelatedSearch {
   id: string;
   title: string;
   web_result_page: number;
   blog_id: string | null;
+  created_at: string;
 }
 
 interface Blog {
@@ -35,6 +42,8 @@ interface GeneratedResult {
   isSponsored: boolean;
 }
 
+const generateRandomToken = () => Math.random().toString(36).substring(2, 10);
+
 const AdminWebResults = () => {
   const { toast } = useToast();
   const [results, setResults] = useState<WebResult[]>([]);
@@ -48,6 +57,11 @@ const AdminWebResults = () => {
   const [selectedRelatedSearch, setSelectedRelatedSearch] = useState<string>('');
   const [generatedResults, setGeneratedResults] = useState<GeneratedResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Blog filter state
+  const [selectedBlogFilter, setSelectedBlogFilter] = useState<string>('all');
+  const [selectedRelatedSearchFilter, setSelectedRelatedSearchFilter] = useState<string>('all');
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -69,7 +83,7 @@ const AdminWebResults = () => {
     try {
       const { data, error } = await supabase
         .from('related_searches')
-        .select('id, title, web_result_page, blog_id')
+        .select('id, title, web_result_page, blog_id, created_at')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
@@ -246,19 +260,53 @@ const AdminWebResults = () => {
     toast({ title: `Exported ${selectedIds.size} web results to CSV` });
   };
 
-  const handleCopy = () => {
+  // Copy with options
+  const handleCopyWithOption = (option: 'all' | 'title' | 'link' | 'blog' | 'search' | 'date') => {
     const selectedData = results.filter(r => selectedIds.has(r.id));
     const baseUrl = window.location.origin;
-    const text = selectedData.map((r) => `${baseUrl}/wr/${r.web_result_page}?result_id=${r.id}`).join('\n');
+    
+    const text = selectedData.map((r) => {
+      const relatedSearch = relatedSearches.find(s => s.web_result_page === r.web_result_page);
+      const blog = relatedSearch ? blogs.find(b => b.id === relatedSearch.blog_id) : null;
+      
+      switch (option) {
+        case 'title':
+          return r.title;
+        case 'link':
+          return r.original_link;
+        case 'blog':
+          return blog?.title || 'No Blog';
+        case 'search':
+          return relatedSearch?.title || 'No Related Search';
+        case 'date':
+          return new Date(r.created_at).toLocaleDateString();
+        case 'all':
+        default:
+          return `Title: ${r.title}\nBlog: ${blog?.title || 'No Blog'}\nRelated Search: ${relatedSearch?.title || 'N/A'}\nOriginal Link: ${r.original_link}\nDate: ${new Date(r.created_at).toLocaleDateString()}`;
+      }
+    }).join('\n\n');
+    
     navigator.clipboard.writeText(text);
-    toast({ title: "Copied links to clipboard" });
+    toast({ title: `Copied ${option === 'all' ? 'all details' : option} to clipboard` });
+  };
+
+  const handleCopy = () => {
+    handleCopyWithOption('all');
   };
 
   const handleCopyLink = (result: WebResult) => {
-    const baseUrl = window.location.origin;
-    const link = `${baseUrl}/wr/${result.web_result_page}?result_id=${result.id}`;
-    navigator.clipboard.writeText(link);
-    toast({ title: "Link copied", description: link });
+    // Show copy options dropdown
+    const relatedSearch = relatedSearches.find(s => s.web_result_page === result.web_result_page);
+    const blog = relatedSearch ? blogs.find(b => b.id === relatedSearch.blog_id) : null;
+    
+    const text = `Title: ${result.title}
+Blog: ${blog?.title || 'No Blog'}
+Related Search: ${relatedSearch?.title || 'N/A'}
+Original Link: ${result.original_link}
+Date: ${new Date(result.created_at).toLocaleDateString()}`;
+    
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied details", description: `${result.title} - ${result.original_link}` });
   };
 
   const handleBulkActivate = async () => {
@@ -312,6 +360,13 @@ const AdminWebResults = () => {
     r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     r.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Get filtered related searches based on blog selection
+  const getFilteredRelatedSearches = () => {
+    if (selectedBlogFilter === 'all') return relatedSearches;
+    if (selectedBlogFilter === 'none') return relatedSearches.filter(s => !s.blog_id);
+    return relatedSearches.filter(s => s.blog_id === selectedBlogFilter);
+  };
 
   const handleGenerateAIResults = async () => {
     const search = relatedSearches.find(s => s.id === selectedRelatedSearch);
@@ -388,8 +443,70 @@ const AdminWebResults = () => {
   return (
     <AdminLayout title="Web Results Editor">
       <div className="space-y-6">
-        {/* AI Generator Section */}
+        {/* Blog Filter Section */}
         <div className="admin-card border-2 border-primary/30">
+          <h3 className="text-lg font-semibold text-primary mb-4">Step 1: Select Blog & Related Search</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Filter by Blog</Label>
+              <Select
+                value={selectedBlogFilter}
+                onValueChange={(value) => {
+                  setSelectedBlogFilter(value);
+                  setSelectedRelatedSearchFilter('all');
+                  setSelectedRelatedSearch('');
+                }}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select blog to filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Blogs</SelectItem>
+                  <SelectItem value="none">Landing Page Only (No Blog)</SelectItem>
+                  {blogs.map((blog) => (
+                    <SelectItem key={blog.id} value={blog.id}>
+                      {blog.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Filter by Related Search</Label>
+              <Select
+                value={selectedRelatedSearchFilter}
+                onValueChange={(value) => {
+                  setSelectedRelatedSearchFilter(value);
+                  if (value !== 'all') {
+                    const search = relatedSearches.find(s => s.id === value);
+                    if (search) {
+                      setSelectedPage(search.web_result_page);
+                      setFormData(prev => ({ ...prev, web_result_page: search.web_result_page }));
+                    }
+                  }
+                }}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select related search" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Related Searches</SelectItem>
+                  {getFilteredRelatedSearches().map((search) => {
+                    const linkedBlog = blogs.find(b => b.id === search.blog_id);
+                    return (
+                      <SelectItem key={search.id} value={search.id}>
+                        {search.title} (wr={search.web_result_page}){linkedBlog && ` [${linkedBlog.title}]`}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* AI Generator Section */}
+        <div className="admin-card border-2 border-amber-500/30">
           <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
             <Sparkles className="w-5 h-5" />
             AI Web Results Generator
@@ -398,7 +515,7 @@ const AdminWebResults = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Select Related Search</Label>
+                <Label>Select Related Search for AI Generation</Label>
                 <Select
                   value={selectedRelatedSearch}
                   onValueChange={(value) => {
@@ -414,7 +531,7 @@ const AdminWebResults = () => {
                     <SelectValue placeholder="Choose a related search" />
                   </SelectTrigger>
                   <SelectContent>
-                    {relatedSearches.map((search) => {
+                    {getFilteredRelatedSearches().map((search) => {
                       const linkedBlog = blogs.find(b => b.id === search.blog_id);
                       return (
                         <SelectItem key={search.id} value={search.id}>
@@ -562,19 +679,52 @@ const AdminWebResults = () => {
           />
         </div>
 
-        {/* Bulk Actions */}
-        <BulkActionToolbar
-          totalCount={filteredResults.length}
-          selectedCount={selectedIds.size}
-          allSelected={selectedIds.size === filteredResults.length && filteredResults.length > 0}
-          onSelectAll={handleSelectAll}
-          onExportAll={handleExportAll}
-          onExportSelected={handleExportSelected}
-          onCopy={handleCopy}
-          onActivate={handleBulkActivate}
-          onDeactivate={handleBulkDeactivate}
-          onDelete={handleBulkDelete}
-        />
+        {/* Bulk Actions with Copy Options */}
+        <div className="flex flex-wrap items-center gap-2">
+          <BulkActionToolbar
+            totalCount={filteredResults.length}
+            selectedCount={selectedIds.size}
+            allSelected={selectedIds.size === filteredResults.length && filteredResults.length > 0}
+            onSelectAll={handleSelectAll}
+            onExportAll={handleExportAll}
+            onExportSelected={handleExportSelected}
+            onCopy={handleCopy}
+            onActivate={handleBulkActivate}
+            onDeactivate={handleBulkDeactivate}
+            onDelete={handleBulkDelete}
+          />
+          {selectedIds.size > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1">
+                  <Copy className="w-4 h-4" />
+                  Copy Options
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleCopyWithOption('all')}>
+                  Copy All Details
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleCopyWithOption('title')}>
+                  Copy Title Only
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleCopyWithOption('link')}>
+                  Copy Original Link
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleCopyWithOption('blog')}>
+                  Copy Blog Name
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleCopyWithOption('search')}>
+                  Copy Related Search
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleCopyWithOption('date')}>
+                  Copy Date
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
 
         {/* Add/Edit Form */}
         <div className="admin-card">
@@ -607,12 +757,15 @@ const AdminWebResults = () => {
                   <SelectValue placeholder="Select related search" />
                 </SelectTrigger>
                 <SelectContent>
-                  {relatedSearches.map((search) => (
-                    <SelectItem key={search.id} value={search.web_result_page.toString()}>
-                      {search.title} (wr={search.web_result_page})
-                    </SelectItem>
-                  ))}
-                  {relatedSearches.length === 0 && (
+                  {getFilteredRelatedSearches().map((search) => {
+                    const linkedBlog = blogs.find(b => b.id === search.blog_id);
+                    return (
+                      <SelectItem key={search.id} value={search.web_result_page.toString()}>
+                        {search.title} (wr={search.web_result_page}){linkedBlog && ` [${linkedBlog.title}]`}
+                      </SelectItem>
+                    );
+                  })}
+                  {getFilteredRelatedSearches().length === 0 && (
                     <SelectItem value="1" disabled>No related searches found</SelectItem>
                   )}
                 </SelectContent>
@@ -700,67 +853,116 @@ const AdminWebResults = () => {
             <div className="animate-pulse text-muted-foreground">Loading...</div>
           ) : (
             <div className="space-y-2">
-              {filteredResults.map((result, index) => (
-                <div
-                  key={result.id}
-                  className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg"
-                >
-                  <div className="flex items-center gap-4">
-                    <Checkbox
-                      checked={selectedIds.has(result.id)}
-                      onCheckedChange={() => toggleSelection(result.id)}
-                    />
-                    {result.logo_url ? (
-                      <img src={result.logo_url} alt="" className="w-8 h-8 rounded object-cover" />
-                    ) : (
-                      <span className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-                        {result.title.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                    <div>
-                      <p className="font-medium text-foreground">{result.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        lid={index + 1} | Order: {result.display_order}
-                        {!result.is_active && ' | Inactive'}
-                        {(result as any).is_sponsored && <span className="text-amber-500 font-medium"> | Sponsored</span>}
-                      </p>
-                      <a 
-                        href={result.original_link} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline flex items-center gap-1"
+              {filteredResults.map((result, index) => {
+                const relatedSearch = relatedSearches.find(s => s.web_result_page === result.web_result_page);
+                const linkedBlog = relatedSearch ? blogs.find(b => b.id === relatedSearch.blog_id) : null;
+                
+                return (
+                  <div
+                    key={result.id}
+                    className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Checkbox
+                        checked={selectedIds.has(result.id)}
+                        onCheckedChange={() => toggleSelection(result.id)}
+                      />
+                      {result.logo_url ? (
+                        <img src={result.logo_url} alt="" className="w-8 h-8 rounded object-cover" />
+                      ) : (
+                        <span className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+                          {result.title.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <div>
+                        <p className="font-medium text-foreground">{result.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {linkedBlog && <span className="text-primary">[{linkedBlog.title}]</span>}
+                          {relatedSearch && <span> {relatedSearch.title}</span>}
+                          {' | '}Order: {result.display_order}
+                          {!result.is_active && ' | Inactive'}
+                          {(result as any).is_sponsored && <span className="text-amber-500 font-medium"> | Sponsored</span>}
+                        </p>
+                        <a 
+                          href={result.original_link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          {result.original_link.substring(0, 50)}{result.original_link.length > 50 ? '...' : ''}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            title="Copy options"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => {
+                            const text = `Title: ${result.title}\nBlog: ${linkedBlog?.title || 'No Blog'}\nRelated Search: ${relatedSearch?.title || 'N/A'}\nOriginal Link: ${result.original_link}\nDate: ${new Date(result.created_at).toLocaleDateString()}`;
+                            navigator.clipboard.writeText(text);
+                            toast({ title: "Copied all details" });
+                          }}>
+                            Copy All Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            navigator.clipboard.writeText(result.title);
+                            toast({ title: "Copied title" });
+                          }}>
+                            Copy Title
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            navigator.clipboard.writeText(result.original_link);
+                            toast({ title: "Copied original link" });
+                          }}>
+                            Copy Original Link
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            navigator.clipboard.writeText(linkedBlog?.title || 'No Blog');
+                            toast({ title: "Copied blog name" });
+                          }}>
+                            Copy Blog Name
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            navigator.clipboard.writeText(relatedSearch?.title || 'N/A');
+                            toast({ title: "Copied related search" });
+                          }}>
+                            Copy Related Search
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            navigator.clipboard.writeText(new Date(result.created_at).toLocaleDateString());
+                            toast({ title: "Copied date" });
+                          }}>
+                            Copy Date
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleEdit(result)}
                       >
-                        {result.original_link.substring(0, 40)}...
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => handleDelete(result.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleCopyLink(result)}
-                      title="Copy link"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleEdit(result)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => handleDelete(result.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               
               {filteredResults.length === 0 && (
                 <p className="text-muted-foreground text-center py-8">

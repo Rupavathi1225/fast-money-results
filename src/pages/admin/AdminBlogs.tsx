@@ -134,12 +134,43 @@ const AdminBlogs = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      // First get related searches for this blog
+      const { data: relatedSearches, error: searchError } = await supabase
+        .from("related_searches")
+        .select("web_result_page")
+        .eq("blog_id", id);
+      
+      if (searchError) throw searchError;
+      
+      // Get unique web_result_pages to delete web results from
+      const webResultPages = [...new Set(relatedSearches?.map(s => s.web_result_page) || [])];
+      
+      // Delete web results for those pages (cascade)
+      if (webResultPages.length > 0) {
+        const { error: webResultsError } = await supabase
+          .from("web_results")
+          .delete()
+          .in("web_result_page", webResultPages);
+        
+        if (webResultsError) console.error("Error deleting web results:", webResultsError);
+      }
+      
+      // Delete related searches for this blog
+      const { error: deleteSearchError } = await supabase
+        .from("related_searches")
+        .delete()
+        .eq("blog_id", id);
+      
+      if (deleteSearchError) throw deleteSearchError;
+      
+      // Finally delete the blog
       const { error } = await supabase.from("blogs").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"] });
-      toast({ title: "Blog deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["related-searches"] });
+      toast({ title: "Blog and associated data deleted successfully" });
     },
     onError: (error: Error) => {
       toast({ title: "Error deleting blog", description: error.message, variant: "destructive" });

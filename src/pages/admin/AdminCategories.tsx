@@ -27,6 +27,7 @@ const AdminCategories = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedBlogFilter, setSelectedBlogFilter] = useState<string>('all');
   const [formData, setFormData] = useState({
     search_text: '',
     title: '',
@@ -81,7 +82,7 @@ const AdminCategories = () => {
       position: 1,
       display_order: 0,
       is_active: true,
-      blog_id: null,
+      blog_id: selectedBlogFilter !== 'all' && selectedBlogFilter !== 'none' ? selectedBlogFilter : null,
     });
     setEditingId(null);
   };
@@ -195,14 +196,23 @@ const AdminCategories = () => {
   const handleCopy = () => {
     const selectedData = searches.filter(s => selectedIds.has(s.id));
     const baseUrl = window.location.origin;
-    const text = selectedData.map(s => `${baseUrl}/wr/${s.web_result_page}`).join('\n');
+    const text = selectedData.map(s => {
+      const blog = blogs.find(b => b.id === s.blog_id);
+      const randomToken = generateRandomToken();
+      return `${baseUrl}/wr/${s.web_result_page}?p=${randomToken}&n=${generateRandomToken()}&c=${generateRandomToken()}`;
+    }).join('\n');
     navigator.clipboard.writeText(text);
     toast({ title: "Copied links to clipboard" });
   };
 
+  const generateRandomToken = () => {
+    return Math.random().toString(36).substring(2, 10);
+  };
+
   const handleCopyLink = (search: RelatedSearch) => {
     const baseUrl = window.location.origin;
-    const link = `${baseUrl}/wr/${search.web_result_page}`;
+    const randomToken = generateRandomToken();
+    const link = `${baseUrl}/wr/${search.web_result_page}?p=${randomToken}&n=${generateRandomToken()}&c=${generateRandomToken()}`;
     navigator.clipboard.writeText(link);
     toast({ title: "Link copied", description: link });
   };
@@ -254,10 +264,15 @@ const AdminCategories = () => {
     }
   };
 
-  const filteredSearches = searches.filter(s => 
-    s.search_text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter searches based on blog filter and search query
+  const filteredSearches = searches.filter(s => {
+    const matchesSearch = s.search_text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.title.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (selectedBlogFilter === 'all') return matchesSearch;
+    if (selectedBlogFilter === 'none') return matchesSearch && !s.blog_id;
+    return matchesSearch && s.blog_id === selectedBlogFilter;
+  });
 
   if (loading) {
     return (
@@ -270,6 +285,39 @@ const AdminCategories = () => {
   return (
     <AdminLayout title="Categories Editor">
       <div className="space-y-6">
+        {/* Blog Filter */}
+        <div className="admin-card border-2 border-primary/30">
+          <h3 className="text-lg font-semibold text-primary mb-4">Step 1: Select Blog</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Filter by Blog</Label>
+              <Select
+                value={selectedBlogFilter}
+                onValueChange={(value) => {
+                  setSelectedBlogFilter(value);
+                  // Auto-set blog_id in form when creating new
+                  if (value !== 'all' && value !== 'none' && !editingId) {
+                    setFormData(prev => ({ ...prev, blog_id: value }));
+                  }
+                }}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select blog to filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Related Searches</SelectItem>
+                  <SelectItem value="none">Landing Page Only (No Blog)</SelectItem>
+                  {blogs.map((blog) => (
+                    <SelectItem key={blog.id} value={blog.id}>
+                      {blog.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
         {/* Search */}
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -400,7 +448,7 @@ const AdminCategories = () => {
         {/* Existing Categories */}
         <div className="admin-card">
           <h3 className="text-lg font-semibold text-primary mb-4">
-            Existing Related Searches
+            Existing Related Searches {selectedBlogFilter !== 'all' && `(${selectedBlogFilter === 'none' ? 'Landing Page' : blogs.find(b => b.id === selectedBlogFilter)?.title || ''})`}
           </h3>
           
           <div className="space-y-2">
