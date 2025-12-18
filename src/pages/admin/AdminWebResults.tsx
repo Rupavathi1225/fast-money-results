@@ -923,6 +923,13 @@ Date: ${new Date(result.created_at).toLocaleDateString()}`;
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem onClick={() => {
+                            const shareableLink = `${window.location.origin}/wr/${result.web_result_page}?result_id=${result.id}`;
+                            navigator.clipboard.writeText(shareableLink);
+                            toast({ title: "Copied shareable link" });
+                          }}>
+                            Copy Shareable Link
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
                             const text = `Title: ${result.title}\nBlog: ${linkedBlog?.title || 'No Blog'}\nRelated Search: ${relatedSearch?.title || 'N/A'}\nOriginal Link: ${result.original_link}\nDate: ${new Date(result.created_at).toLocaleDateString()}`;
                             navigator.clipboard.writeText(text);
                             toast({ title: "Copied all details" });
