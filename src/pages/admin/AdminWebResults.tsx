@@ -482,7 +482,11 @@ Date: ${new Date(result.created_at).toLocaleDateString()}`;
                     if (search) {
                       setSelectedPage(search.web_result_page);
                       setFormData(prev => ({ ...prev, web_result_page: search.web_result_page }));
+                      // Sync with AI Generator dropdown
+                      setSelectedRelatedSearch(value);
                     }
+                  } else {
+                    setSelectedRelatedSearch('');
                   }
                 }}
               >
@@ -520,6 +524,8 @@ Date: ${new Date(result.created_at).toLocaleDateString()}`;
                   value={selectedRelatedSearch}
                   onValueChange={(value) => {
                     setSelectedRelatedSearch(value);
+                    // Sync with filter dropdown
+                    setSelectedRelatedSearchFilter(value || 'all');
                     const search = relatedSearches.find(s => s.id === value);
                     if (search) {
                       setSelectedPage(search.web_result_page);
