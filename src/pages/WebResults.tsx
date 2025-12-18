@@ -13,6 +13,22 @@ interface RelatedSearch {
   blog_id: string | null;
 }
 
+// Generate random alphanumeric token
+const generateRandomToken = () => {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+// Generate random word-like token
+const generateRandomWord = () => {
+  const words = ['quick', 'fast', 'smart', 'easy', 'safe', 'best', 'top', 'new', 'pro', 'max', 'plus', 'prime', 'ultra', 'mega', 'super', 'hyper', 'elite', 'apex', 'peak', 'core'];
+  return words[Math.floor(Math.random() * words.length)] + generateRandomToken().substring(0, 4);
+};
+
 const WebResults = () => {
   const { wrPage } = useParams();
   const [searchParams] = useSearchParams();
@@ -80,9 +96,11 @@ const WebResults = () => {
   };
 
   const generateMaskedLink = (result: WebResult, index: number) => {
-    // Generate random token for link masking
-    const randomToken = Math.random().toString(36).substring(2, 8);
-    return `/link/${index + 1}?p=${pageNumber}&n=${randomToken}&c=${result.id.substring(0, 8)}`;
+    // Generate fully random parameters
+    const p = generateRandomWord();
+    const n = generateRandomToken();
+    const c = generateRandomWord();
+    return `/link/${generateRandomToken()}?p=${p}&n=${n}&c=${c}`;
   };
 
   const handleResultClick = async (result: WebResult, index: number) => {
@@ -116,6 +134,12 @@ const WebResults = () => {
         {result.title.charAt(0).toUpperCase()}
       </span>
     );
+  };
+
+  // Generate random display URL for masking
+  const getDisplayUrl = (index: number) => {
+    const siteName = settings?.site_name?.toLowerCase() || 'fastmoney';
+    return `${siteName}/${generateRandomWord()}/${generateRandomToken().substring(0, 4)}`;
   };
 
   if (loading) {
@@ -167,6 +191,7 @@ const WebResults = () => {
                 <div className="bg-[#1a1f2e] rounded-lg p-6 mb-8 border border-border/20">
                   {results.filter(r => r.is_sponsored).map((result, idx) => {
                     const originalIndex = results.findIndex(r => r.id === result.id);
+                    const displayUrl = getDisplayUrl(originalIndex);
                     return (
                       <div
                         key={result.id}
@@ -180,7 +205,7 @@ const WebResults = () => {
                           {result.title}
                         </h3>
                         <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                          <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{originalIndex + 1}?p={pageNumber}&n=...</span>
+                          <span>{displayUrl}</span>
                         </div>
                         {result.description && (
                           <p className="text-sm text-muted-foreground/80 mt-2 italic">
@@ -206,6 +231,7 @@ const WebResults = () => {
                   <div className="space-y-6">
                     {results.filter(r => !r.is_sponsored).map((result) => {
                       const originalIndex = results.findIndex(r => r.id === result.id);
+                      const displayUrl = getDisplayUrl(originalIndex);
                       return (
                         <div
                           key={result.id}
@@ -218,7 +244,7 @@ const WebResults = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
-                              <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{originalIndex + 1}?p={pageNumber}&n=...</span>
+                              <span>{displayUrl}</span>
                               <ExternalLink className="w-3 h-3" />
                             </div>
                             <h3 className="text-lg font-medium text-primary group-hover:underline">
