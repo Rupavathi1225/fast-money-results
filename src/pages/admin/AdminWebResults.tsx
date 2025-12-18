@@ -265,31 +265,55 @@ const AdminWebResults = () => {
     toast({ title: `Exported ${selectedIds.size} web results to CSV` });
   };
 
-  // Copy with options
-  const handleCopyWithOption = (option: 'all' | 'title' | 'link' | 'blog' | 'search' | 'date') => {
+  // Copy with options - tab-separated format for spreadsheet compatibility
+  const handleCopyWithOption = (option: 'all' | 'title' | 'description' | 'link' | 'blog' | 'search' | 'date') => {
     const selectedData = results.filter(r => selectedIds.has(r.id));
-    const baseUrl = window.location.origin;
     
-    const text = selectedData.map((r) => {
-      const relatedSearch = relatedSearches.find(s => s.web_result_page === r.web_result_page);
-      const blog = relatedSearch ? blogs.find(b => b.id === relatedSearch.blog_id) : null;
+    let text = '';
+    
+    if (option === 'all') {
+      // Header row
+      const headers = ['Title', 'Description', 'Blog', 'Related Search', 'Original Link', 'Date'];
+      text = headers.join('\t') + '\n';
       
-      switch (option) {
-        case 'title':
-          return r.title;
-        case 'link':
-          return r.original_link;
-        case 'blog':
-          return blog?.title || 'No Blog';
-        case 'search':
-          return relatedSearch?.title || 'No Related Search';
-        case 'date':
-          return new Date(r.created_at).toLocaleDateString();
-        case 'all':
-        default:
-          return `Title: ${r.title}\nBlog: ${blog?.title || 'No Blog'}\nRelated Search: ${relatedSearch?.title || 'N/A'}\nOriginal Link: ${r.original_link}\nDate: ${new Date(r.created_at).toLocaleDateString()}`;
-      }
-    }).join('\n\n');
+      // Data rows - tab-separated
+      text += selectedData.map((r) => {
+        const relatedSearch = relatedSearches.find(s => s.web_result_page === r.web_result_page);
+        const blog = relatedSearch ? blogs.find(b => b.id === relatedSearch.blog_id) : null;
+        
+        const columns = [
+          r.title,
+          r.description || '',
+          blog?.title || 'No Blog',
+          relatedSearch?.title || 'N/A',
+          r.original_link,
+          new Date(r.created_at).toLocaleDateString()
+        ];
+        return columns.join('\t');
+      }).join('\n');
+    } else {
+      text = selectedData.map((r) => {
+        const relatedSearch = relatedSearches.find(s => s.web_result_page === r.web_result_page);
+        const blog = relatedSearch ? blogs.find(b => b.id === relatedSearch.blog_id) : null;
+        
+        switch (option) {
+          case 'title':
+            return r.title;
+          case 'description':
+            return r.description || '';
+          case 'link':
+            return r.original_link;
+          case 'blog':
+            return blog?.title || 'No Blog';
+          case 'search':
+            return relatedSearch?.title || 'No Related Search';
+          case 'date':
+            return new Date(r.created_at).toLocaleDateString();
+          default:
+            return r.title;
+        }
+      }).join('\n');
+    }
     
     navigator.clipboard.writeText(text);
     toast({ title: `Copied ${option === 'all' ? 'all details' : option} to clipboard` });
@@ -300,18 +324,25 @@ const AdminWebResults = () => {
   };
 
   const handleCopyLink = (result: WebResult) => {
-    // Show copy options dropdown
+    // Tab-separated format for spreadsheet compatibility
     const relatedSearch = relatedSearches.find(s => s.web_result_page === result.web_result_page);
     const blog = relatedSearch ? blogs.find(b => b.id === relatedSearch.blog_id) : null;
     
-    const text = `Title: ${result.title}
-Blog: ${blog?.title || 'No Blog'}
-Related Search: ${relatedSearch?.title || 'N/A'}
-Original Link: ${result.original_link}
-Date: ${new Date(result.created_at).toLocaleDateString()}`;
+    // Header row + data row
+    const headers = ['Title', 'Description', 'Blog', 'Related Search', 'Original Link', 'Date'];
+    const data = [
+      result.title,
+      result.description || '',
+      blog?.title || 'No Blog',
+      relatedSearch?.title || 'N/A',
+      result.original_link,
+      new Date(result.created_at).toLocaleDateString()
+    ];
+    
+    const text = headers.join('\t') + '\n' + data.join('\t');
     
     navigator.clipboard.writeText(text);
-    toast({ title: "Copied details", description: `${result.title} - ${result.original_link}` });
+    toast({ title: "Copied details", description: `${result.title}` });
   };
 
   const handleBulkActivate = async () => {
@@ -724,6 +755,9 @@ Date: ${new Date(result.created_at).toLocaleDateString()}`;
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleCopyWithOption('title')}>
                   Copy Title Only
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleCopyWithOption('description')}>
+                  Copy Description
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleCopyWithOption('link')}>
                   Copy Original Link
