@@ -657,6 +657,7 @@ const AdminBlogs = () => {
                     <TableHead>Title</TableHead>
                     <TableHead>Slug</TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Published Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -677,6 +678,13 @@ const AdminBlogs = () => {
                       <TableCell className="font-medium">{blog.title}</TableCell>
                       <TableCell>{blog.slug}</TableCell>
                       <TableCell>{blog.category || "-"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(blog.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </TableCell>
                       <TableCell>
                         <span
                           className={`px-2 py-1 rounded text-xs ${
@@ -730,7 +738,7 @@ const AdminBlogs = () => {
                     (b.category || '').toLowerCase().includes(searchQuery.toLowerCase())
                   ).length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         {searchQuery ? `No blogs matching "${searchQuery}"` : 'No blogs yet. Create your first blog!'}
                       </TableCell>
                     </TableRow>

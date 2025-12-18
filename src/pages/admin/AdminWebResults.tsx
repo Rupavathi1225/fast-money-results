@@ -18,6 +18,12 @@ interface RelatedSearch {
   id: string;
   title: string;
   web_result_page: number;
+  blog_id: string | null;
+}
+
+interface Blog {
+  id: string;
+  title: string;
 }
 
 interface GeneratedResult {
@@ -33,6 +39,7 @@ const AdminWebResults = () => {
   const { toast } = useToast();
   const [results, setResults] = useState<WebResult[]>([]);
   const [relatedSearches, setRelatedSearches] = useState<RelatedSearch[]>([]);
+  const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPage, setSelectedPage] = useState<number>(1);
@@ -55,13 +62,14 @@ const AdminWebResults = () => {
   useEffect(() => {
     fetchResults();
     fetchRelatedSearches();
+    fetchBlogs();
   }, [selectedPage]);
 
   const fetchRelatedSearches = async () => {
     try {
       const { data, error } = await supabase
         .from('related_searches')
-        .select('id, title, web_result_page')
+        .select('id, title, web_result_page, blog_id')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
@@ -69,6 +77,20 @@ const AdminWebResults = () => {
       setRelatedSearches(data || []);
     } catch (error) {
       console.error('Error fetching related searches:', error);
+    }
+  };
+
+  const fetchBlogs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('blogs')
+        .select('id, title')
+        .order('title', { ascending: true });
+
+      if (error) throw error;
+      setBlogs(data || []);
+    } catch (error) {
+      console.error('Error fetching blogs:', error);
     }
   };
 
@@ -392,11 +414,14 @@ const AdminWebResults = () => {
                     <SelectValue placeholder="Choose a related search" />
                   </SelectTrigger>
                   <SelectContent>
-                    {relatedSearches.map((search) => (
-                      <SelectItem key={search.id} value={search.id}>
-                        {search.title} (wr={search.web_result_page})
-                      </SelectItem>
-                    ))}
+                    {relatedSearches.map((search) => {
+                      const linkedBlog = blogs.find(b => b.id === search.blog_id);
+                      return (
+                        <SelectItem key={search.id} value={search.id}>
+                          {search.title} (wr={search.web_result_page}){linkedBlog && ` [${linkedBlog.title}]`}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
