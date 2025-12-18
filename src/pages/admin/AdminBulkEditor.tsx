@@ -51,8 +51,34 @@ const AdminBulkEditor = () => {
     },
   });
 
+  // Helper to find column by normalized name (case-insensitive, trimmed)
+  const findColumn = (row: Record<string, string>, possibleNames: string[]): string | undefined => {
+    const keys = Object.keys(row);
+    for (const name of possibleNames) {
+      const found = keys.find(k => k.trim().toLowerCase() === name.toLowerCase());
+      if (found && row[found]?.toString().trim()) {
+        return row[found].toString().trim();
+      }
+    }
+    return undefined;
+  };
+
+  // Check if column exists in row
+  const hasColumn = (row: Record<string, string>, possibleNames: string[]): boolean => {
+    const keys = Object.keys(row);
+    return possibleNames.some(name => 
+      keys.some(k => k.trim().toLowerCase() === name.toLowerCase())
+    );
+  };
+
   const processJsonData = (jsonData: Record<string, string>[]) => {
-    if (jsonData.length === 0) {
+    // Filter out empty rows (rows where all values are empty)
+    const filteredData = jsonData.filter(row => {
+      const values = Object.values(row);
+      return values.some(v => v && v.toString().trim() !== "");
+    });
+
+    if (filteredData.length === 0) {
       toast({
         title: "Empty data",
         description: "No data found to process",
@@ -61,12 +87,17 @@ const AdminBulkEditor = () => {
       return null;
     }
 
-    // Validate required columns
-    const firstRow = jsonData[0];
-    const hasNewTitle = "Name" in firstRow;
-    const hasNewUrl = "Url Link" in firstRow;
-    const hasWebResultTitle = "Web Result Title" in firstRow;
-    const hasOriginalLink = "Original Link" in firstRow;
+    // Validate required columns (case-insensitive)
+    const firstRow = filteredData[0];
+    const nameVariants = ["Name"];
+    const urlLinkVariants = ["Url Link", "Url_Link", "UrlLink", "URL Link"];
+    const webResultTitleVariants = ["Web Result Title", "Web_Result_Title", "WebResultTitle"];
+    const originalLinkVariants = ["Original Link", "Original_Link", "OriginalLink"];
+
+    const hasNewTitle = hasColumn(firstRow, nameVariants);
+    const hasNewUrl = hasColumn(firstRow, urlLinkVariants);
+    const hasWebResultTitle = hasColumn(firstRow, webResultTitleVariants);
+    const hasOriginalLink = hasColumn(firstRow, originalLinkVariants);
 
     if (!hasNewTitle || !hasNewUrl) {
       toast({
@@ -87,11 +118,11 @@ const AdminBulkEditor = () => {
     }
 
     // Parse and match rows
-    const parsed: ParsedRow[] = jsonData.map((row, index) => {
-      const webResultTitle = row["Web Result Title"]?.trim();
-      const originalLink = row["Original Link"]?.trim();
-      const newTitle = row["Name"]?.trim() || "";
-      const newUrl = row["Url Link"]?.trim() || "";
+    const parsed: ParsedRow[] = filteredData.map((row, index) => {
+      const webResultTitle = findColumn(row, webResultTitleVariants);
+      const originalLink = findColumn(row, originalLinkVariants);
+      const newTitle = findColumn(row, nameVariants) || "";
+      const newUrl = findColumn(row, urlLinkVariants) || "";
 
       let matchedResult: ParsedRow["matchedResult"];
       let status: ParsedRow["status"] = "not_found";
