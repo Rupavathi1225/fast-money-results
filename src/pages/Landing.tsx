@@ -95,7 +95,7 @@ const Landing = () => {
               Related Searches
             </h3>
 
-            <div className="flex flex-col gap-2 max-w-2xl mx-auto">
+            <div className="flex flex-col gap-2 max-w-lg mx-auto">
               {searches.map((search, index) => (
                 <button
                   key={search.id}
