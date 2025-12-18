@@ -13,6 +13,11 @@ interface RelatedSearch {
   blog_id: string | null;
 }
 
+interface Blog {
+  id: string;
+  title: string;
+}
+
 // Generate random alphanumeric token
 const generateRandomToken = () => {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -38,6 +43,7 @@ const WebResults = () => {
   const [results, setResults] = useState<WebResult[]>([]);
   const [settings, setSettings] = useState<LandingSettings | null>(null);
   const [relatedSearch, setRelatedSearch] = useState<RelatedSearch | null>(null);
+  const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,12 +51,14 @@ const WebResults = () => {
   }, [pageNumber, resultId]);
 
   useEffect(() => {
-    if (relatedSearch) {
+    if (blog) {
+      document.title = `${blog.title} - Web Results`;
+    } else if (relatedSearch) {
       document.title = `${relatedSearch.title} - Web Results`;
     } else {
       document.title = `Web Results - Page ${pageNumber}`;
     }
-  }, [relatedSearch, pageNumber]);
+  }, [relatedSearch, blog, pageNumber]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -73,7 +81,7 @@ const WebResults = () => {
         resultsQuery,
         supabase
           .from('related_searches')
-          .select('id, title, search_text, web_result_page')
+          .select('id, title, search_text, web_result_page, blog_id')
           .eq('web_result_page', pageNumber)
           .eq('is_active', true)
           .maybeSingle(),
@@ -84,9 +92,35 @@ const WebResults = () => {
       }
       if (resultsRes.data) {
         setResults(resultsRes.data as WebResult[]);
+        
+        // If we have a single result with blog_id, fetch the blog
+        if (resultId && resultsRes.data.length > 0) {
+          const webResult = resultsRes.data[0] as WebResult & { blog_id?: string };
+          if (webResult.blog_id) {
+            const { data: blogData } = await supabase
+              .from('blogs')
+              .select('id, title')
+              .eq('id', webResult.blog_id)
+              .maybeSingle();
+            if (blogData) {
+              setBlog(blogData);
+            }
+          }
+        }
       }
       if (relatedSearchRes.data) {
         setRelatedSearch(relatedSearchRes.data as RelatedSearch);
+        // Also fetch blog from related search if not already fetched
+        if (!resultId && relatedSearchRes.data.blog_id) {
+          const { data: blogData } = await supabase
+            .from('blogs')
+            .select('id, title')
+            .eq('id', relatedSearchRes.data.blog_id)
+            .maybeSingle();
+          if (blogData) {
+            setBlog(blogData);
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -171,13 +205,20 @@ const WebResults = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
-          {/* Related Search Title */}
-          {relatedSearch && (
+          {/* Blog Name and Related Search Title */}
+          {(blog || relatedSearch) && (
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-foreground">{relatedSearch.title}</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Showing results for: {relatedSearch.search_text}
-              </p>
+              {blog && (
+                <p className="text-sm text-primary mb-1">Blog: {blog.title}</p>
+              )}
+              {relatedSearch && (
+                <>
+                  <h1 className="text-2xl font-bold text-foreground">{relatedSearch.title}</h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Showing results for: {relatedSearch.search_text}
+                  </p>
+                </>
+              )}
             </div>
           )}
           {results.length === 0 ? (
