@@ -70,9 +70,15 @@ const WebResults = () => {
     }
   };
 
+  const generateMaskedLink = (result: WebResult, index: number) => {
+    // Generate random token for link masking
+    const randomToken = Math.random().toString(36).substring(2, 8);
+    return `/link/${index + 1}?p=${pageNumber}&n=${randomToken}&c=${result.id.substring(0, 8)}`;
+  };
+
   const handleResultClick = async (result: WebResult, index: number) => {
     await trackClick(index + 1, result.id, window.location.href);
-    window.location.href = `/link/${index + 1}?rid=${result.id}`;
+    window.location.href = generateMaskedLink(result, index) + `&rid=${result.id}`;
   };
 
   const getLogoDisplay = (result: WebResult) => {
@@ -165,7 +171,7 @@ const WebResults = () => {
                           {result.title}
                         </h3>
                         <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                          <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{originalIndex + 1}</span>
+                          <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{originalIndex + 1}?p={pageNumber}&n=...</span>
                         </div>
                         {result.description && (
                           <p className="text-sm text-muted-foreground/80 mt-2 italic">
@@ -203,7 +209,7 @@ const WebResults = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
-                              <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{originalIndex + 1}</span>
+                              <span>{settings?.site_name?.toLowerCase() || 'fastmoney'}/link/{originalIndex + 1}?p={pageNumber}&n=...</span>
                               <ExternalLink className="w-3 h-3" />
                             </div>
                             <h3 className="text-lg font-medium text-primary group-hover:underline">

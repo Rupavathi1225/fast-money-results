@@ -38,6 +38,12 @@ interface ExistingPrelander {
   web_result_page?: number;
 }
 
+interface Blog {
+  id: string;
+  title: string;
+  slug: string;
+}
+
 const DEFAULT_MAIN_IMAGE = 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=800&auto=format&fit=crop&q=60';
 
 const defaultSettings: PrelanderFormData = {
@@ -57,8 +63,11 @@ const AdminPrelander = () => {
   const { toast } = useToast();
   const [webResults, setWebResults] = useState<WebResult[]>([]);
   const [relatedSearches, setRelatedSearches] = useState<RelatedSearch[]>([]);
+  const [blogs, setBlogs] = useState<Blog[]>([]);
   const [existingPrelanders, setExistingPrelanders] = useState<ExistingPrelander[]>([]);
   const [selectedResultId, setSelectedResultId] = useState<string>('');
+  const [selectedBlogId, setSelectedBlogId] = useState<string>('');
+  const [selectedRelatedSearchId, setSelectedRelatedSearchId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -98,6 +107,15 @@ const AdminPrelander = () => {
       if (rsError) throw rsError;
       setRelatedSearches(rsData as RelatedSearch[]);
 
+      // Fetch blogs
+      const { data: blogData, error: blogError } = await supabase
+        .from('blogs')
+        .select('id, title, slug')
+        .order('title', { ascending: true });
+
+      if (blogError) throw blogError;
+      setBlogs(blogData || []);
+
       // Fetch existing prelanders
       const { data: plData, error: plError } = await supabase
         .from('prelander_settings')
@@ -127,6 +145,20 @@ const AdminPrelander = () => {
   // Get related search name for a web result page
   const getRelatedSearchForPage = (pageNum: number) => {
     return relatedSearches.find(rs => rs.web_result_page === pageNum);
+  };
+
+  // Get blog-specific related searches
+  const getBlogRelatedSearches = () => {
+    if (!selectedBlogId) return [];
+    return relatedSearches.filter(rs => rs.blog_id === selectedBlogId);
+  };
+
+  // Get web results filtered by selected related search
+  const getFilteredWebResults = () => {
+    if (!selectedRelatedSearchId) return [];
+    const selectedRS = relatedSearches.find(rs => rs.id === selectedRelatedSearchId);
+    if (!selectedRS) return [];
+    return webResults.filter(wr => wr.web_result_page === selectedRS.web_result_page);
   };
 
   const fetchPrelanderSettings = async () => {
@@ -165,11 +197,15 @@ const AdminPrelander = () => {
 
   const handleEdit = (webResultId: string) => {
     setSelectedResultId(webResultId);
+    setSelectedBlogId('');
+    setSelectedRelatedSearchId('');
     setShowForm(true);
   };
 
   const handleCreateNew = () => {
     setSelectedResultId('');
+    setSelectedBlogId('');
+    setSelectedRelatedSearchId('');
     setSettings(defaultSettings);
     setIsEditing(false);
     setShowForm(true);
@@ -363,33 +399,89 @@ const AdminPrelander = () => {
               </Button>
             </div>
 
-            {/* Select Web Result - Dropdown */}
+            {/* Step 1: Select Blog */}
             <div>
-              <Label className="mb-2 block">Select Web Result</Label>
+              <Label className="mb-2 block">1️⃣ Select Blog</Label>
               <Select 
-                value={selectedResultId} 
-                onValueChange={setSelectedResultId}
+                value={selectedBlogId} 
+                onValueChange={(value) => {
+                  setSelectedBlogId(value);
+                  setSelectedRelatedSearchId('');
+                  setSelectedResultId('');
+                }}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose a web result..." />
+                  <SelectValue placeholder="Choose a blog..." />
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
-                  {getAvailableWebResults().map((result) => {
-                    const relatedSearch = getRelatedSearchForPage(result.web_result_page);
-                    return (
-                      <SelectItem key={result.id} value={result.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{result.title}</span>
-                          <span className="text-xs text-muted-foreground">
-                            Page {result.web_result_page} - {relatedSearch?.title || 'N/A'}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
+                  {blogs.map((blog) => (
+                    <SelectItem key={blog.id} value={blog.id}>
+                      {blog.title}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Step 2: Select Related Search (filtered by blog) */}
+            {selectedBlogId && (
+              <div>
+                <Label className="mb-2 block">2️⃣ Select Related Search (from "{blogs.find(b => b.id === selectedBlogId)?.title}")</Label>
+                {getBlogRelatedSearches().length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No related searches for this blog.</p>
+                ) : (
+                  <Select 
+                    value={selectedRelatedSearchId} 
+                    onValueChange={(value) => {
+                      setSelectedRelatedSearchId(value);
+                      setSelectedResultId('');
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose a related search..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {getBlogRelatedSearches().map((rs) => (
+                        <SelectItem key={rs.id} value={rs.id}>
+                          {rs.title} (wr={rs.web_result_page})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
+
+            {/* Step 3: Select Web Result (filtered by related search) */}
+            {selectedRelatedSearchId && (
+              <div>
+                <Label className="mb-2 block">3️⃣ Select Web Result</Label>
+                {getFilteredWebResults().length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No web results for this related search.</p>
+                ) : (
+                  <Select 
+                    value={selectedResultId} 
+                    onValueChange={setSelectedResultId}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose a web result..." />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {getFilteredWebResults().map((result) => (
+                        <SelectItem key={result.id} value={result.id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{result.title}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {result.description?.substring(0, 50)}...
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            )}
 
             {/* Generate with AI Button */}
             {selectedResultId && (

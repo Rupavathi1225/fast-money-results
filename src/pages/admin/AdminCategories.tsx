@@ -417,7 +417,14 @@ const AdminCategories = () => {
                       onCheckedChange={() => toggleSelection(search.id)}
                     />
                     <div>
-                      <p className="font-medium text-foreground">{search.search_text}</p>
+                      <p className="font-medium text-foreground">
+                        {search.search_text}
+                        {linkedBlog && (
+                          <span className="text-primary ml-2">
+                            [{linkedBlog.title}]
+                          </span>
+                        )}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         Page: wr={search.web_result_page} | Pos: {search.position} | Order: {search.display_order}
                         {linkedBlog && ` | Blog: ${linkedBlog.title}`}
