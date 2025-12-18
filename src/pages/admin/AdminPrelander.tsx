@@ -329,63 +329,15 @@ const AdminPrelander = () => {
   return (
     <AdminLayout title="Pre-Landing Page Builder">
       <div className="space-y-6">
-        {/* Existing Prelanders List */}
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">Existing Pre-Landing Pages</h2>
+        {/* Create New Button at top */}
+        {!showForm && (
+          <div className="flex justify-end">
             <Button onClick={handleCreateNew} size="sm">
               <Plus className="w-4 h-4 mr-2" />
               Create New
             </Button>
           </div>
-
-          {/* Search Box */}
-          <div className="relative max-w-md mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search prelanders by title or headline..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          {existingPrelanders.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No prelanders created yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {existingPrelanders.filter(pl => 
-                (pl.web_result_title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                pl.headline_text.toLowerCase().includes(searchQuery.toLowerCase())
-              ).map((pl) => (
-                <div
-                  key={pl.id}
-                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
-                >
-                  <div>
-                    <p className="font-medium text-foreground">{pl.web_result_title}</p>
-                    <p className="text-sm text-muted-foreground">{pl.headline_text}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-1 rounded ${pl.is_enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                      {pl.is_enabled ? 'Enabled' : 'Disabled'}
-                    </span>
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(pl.web_result_id)}>
-                      <Edit className="w-4 h-4 mr-1" />
-                      Edit
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {existingPrelanders.filter(pl => 
-                (pl.web_result_title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                pl.headline_text.toLowerCase().includes(searchQuery.toLowerCase())
-              ).length === 0 && searchQuery && (
-                <p className="text-muted-foreground text-sm">No prelanders matching "{searchQuery}"</p>
-              )}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Form (shown when creating/editing) */}
         {showForm && (
@@ -676,6 +628,58 @@ const AdminPrelander = () => {
             </div>
           </div>
         )}
+
+        {/* Existing Prelanders List - at bottom */}
+        <div className="bg-card border border-border rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Existing Pre-Landing Pages</h2>
+          
+          {/* Search Box */}
+          <div className="relative max-w-md mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search prelanders by title or headline..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {existingPrelanders.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No prelanders created yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {existingPrelanders.filter(pl => 
+                (pl.web_result_title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                pl.headline_text.toLowerCase().includes(searchQuery.toLowerCase())
+              ).map((pl) => (
+                <div
+                  key={pl.id}
+                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
+                >
+                  <div>
+                    <p className="font-medium text-foreground">{pl.web_result_title}</p>
+                    <p className="text-sm text-muted-foreground">{pl.headline_text}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-1 rounded ${pl.is_enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                      {pl.is_enabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(pl.web_result_id)}>
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {existingPrelanders.filter(pl => 
+                (pl.web_result_title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                pl.headline_text.toLowerCase().includes(searchQuery.toLowerCase())
+              ).length === 0 && searchQuery && (
+                <p className="text-muted-foreground text-sm">No prelanders matching "{searchQuery}"</p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </AdminLayout>
   );
