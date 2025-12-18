@@ -16,6 +16,7 @@ import AdminWebResults from "./pages/admin/AdminWebResults";
 import AdminPrelander from "./pages/admin/AdminPrelander";
 import AdminBlogs from "./pages/admin/AdminBlogs";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminBulkEditor from "./pages/admin/AdminBulkEditor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/admin/prelander" element={<AdminPrelander />} />
           <Route path="/admin/blogs" element={<AdminBlogs />} />
           <Route path="/admin/analytics" element={<AdminAnalytics />} />
+          <Route path="/admin/bulk-web-result-editor" element={<AdminBulkEditor />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
