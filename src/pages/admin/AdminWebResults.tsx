@@ -964,11 +964,26 @@ const AdminWebResults = () => {
                             Copy Shareable Link
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {
-                            const text = `Title: ${result.title}\nBlog: ${linkedBlog?.title || 'No Blog'}\nRelated Search: ${relatedSearch?.title || 'N/A'}\nOriginal Link: ${result.original_link}\nDate: ${new Date(result.created_at).toLocaleDateString()}`;
+                            const headers = ['Title', 'Description', 'Blog', 'Related Search', 'Original Link', 'Date'];
+                            const data = [
+                              result.title,
+                              result.description || '',
+                              linkedBlog?.title || 'No Blog',
+                              relatedSearch?.title || 'N/A',
+                              result.original_link,
+                              new Date(result.created_at).toLocaleDateString()
+                            ];
+                            const text = headers.join('\t') + '\n' + data.join('\t');
                             navigator.clipboard.writeText(text);
                             toast({ title: "Copied all details" });
                           }}>
                             Copy All Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            navigator.clipboard.writeText(result.description || '');
+                            toast({ title: "Copied description" });
+                          }}>
+                            Copy Description
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {
                             navigator.clipboard.writeText(result.title);
