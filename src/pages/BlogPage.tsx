@@ -123,7 +123,7 @@ const BlogPage = () => {
               </svg>
               <h2 className="text-xl font-semibold text-foreground">Related Searches</h2>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 max-w-lg">
               {relatedSearches.map((search) => (
                 <Link
                   key={search.id}
