@@ -17,6 +17,7 @@ const WebResults = () => {
   const { wrPage } = useParams();
   const [searchParams] = useSearchParams();
   const fromBlog = searchParams.get('from'); // e.g., blog slug
+  const resultId = searchParams.get('result_id'); // specific web result to show
   const pageNumber = parseInt(wrPage || '1');
   const [results, setResults] = useState<WebResult[]>([]);
   const [settings, setSettings] = useState<LandingSettings | null>(null);
@@ -25,7 +26,7 @@ const WebResults = () => {
 
   useEffect(() => {
     fetchData();
-  }, [pageNumber]);
+  }, [pageNumber, resultId]);
 
   useEffect(() => {
     if (relatedSearch) {
@@ -38,14 +39,22 @@ const WebResults = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // If result_id is provided, fetch only that specific result
+      let resultsQuery = supabase
+        .from('web_results')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (resultId) {
+        resultsQuery = resultsQuery.eq('id', resultId);
+      } else {
+        resultsQuery = resultsQuery.eq('web_result_page', pageNumber);
+      }
+
       const [settingsRes, resultsRes, relatedSearchRes] = await Promise.all([
         supabase.from('landing_settings').select('*').single(),
-        supabase
-          .from('web_results')
-          .select('*')
-          .eq('web_result_page', pageNumber)
-          .eq('is_active', true)
-          .order('display_order', { ascending: true }),
+        resultsQuery,
         supabase
           .from('related_searches')
           .select('id, title, search_text, web_result_page')
