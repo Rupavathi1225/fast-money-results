@@ -344,6 +344,7 @@ export type Database = {
       }
       web_results: {
         Row: {
+          blog_id: string | null
           country_permissions: string[] | null
           created_at: string
           description: string | null
@@ -359,6 +360,7 @@ export type Database = {
           web_result_page: number
         }
         Insert: {
+          blog_id?: string | null
           country_permissions?: string[] | null
           created_at?: string
           description?: string | null
@@ -374,6 +376,7 @@ export type Database = {
           web_result_page?: number
         }
         Update: {
+          blog_id?: string | null
           country_permissions?: string[] | null
           created_at?: string
           description?: string | null

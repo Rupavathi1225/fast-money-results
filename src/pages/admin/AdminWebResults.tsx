@@ -161,10 +161,15 @@ const AdminWebResults = () => {
     }
 
     try {
+      // Get blog_id from the selected related search filter
+      const relatedSearch = relatedSearches.find(s => s.id === selectedRelatedSearchFilter);
+      const blogId = relatedSearch?.blog_id || (selectedBlogFilter !== 'all' && selectedBlogFilter !== 'none' ? selectedBlogFilter : null);
+
       const saveData = {
         ...formData,
         description: formData.description || null,
         logo_url: formData.logo_url || null,
+        blog_id: blogId,
       };
 
       if (editingId) {
@@ -417,6 +422,10 @@ Date: ${new Date(result.created_at).toLocaleDateString()}`;
     }
 
     try {
+      // Get blog_id from the selected related search
+      const relatedSearch = relatedSearches.find(s => s.id === selectedRelatedSearch);
+      const blogId = relatedSearch?.blog_id || null;
+
       const inserts = toSave.map((r, idx) => ({
         title: r.title,
         description: r.description,
@@ -425,6 +434,7 @@ Date: ${new Date(result.created_at).toLocaleDateString()}`;
         display_order: idx,
         is_active: true,
         is_sponsored: r.isSponsored,
+        blog_id: blogId,
       }));
 
       const { error } = await supabase.from('web_results').insert(inserts);
