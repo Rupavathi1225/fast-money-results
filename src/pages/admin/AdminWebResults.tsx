@@ -273,7 +273,7 @@ const AdminWebResults = () => {
     
     if (option === 'all') {
       // Header row
-      const headers = ['Title', 'Description', 'Blog', 'Related Search', 'Original Link', 'Date'];
+      const headers = ['Web Result Title', 'Web Result Description', 'Blog', 'Related Search', 'Original Link', 'Date'];
       text = headers.join('\t') + '\n';
       
       // Data rows - tab-separated
@@ -964,7 +964,7 @@ const AdminWebResults = () => {
                             Copy Shareable Link
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {
-                            const headers = ['Title', 'Description', 'Blog', 'Related Search', 'Original Link', 'Date'];
+                            const headers = ['Web Result Title', 'Web Result Description', 'Blog', 'Related Search', 'Original Link', 'Date'];
                             const data = [
                               result.title,
                               result.description || '',
