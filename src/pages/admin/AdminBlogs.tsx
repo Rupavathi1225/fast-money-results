@@ -288,8 +288,8 @@ const AdminBlogs = () => {
       .replace(/(^-|-$)/g, "");
   };
 
-  const copyLink = (slug: string) => {
-    const url = `${window.location.origin}/blog/${slug}`;
+  const copyLink = (blogId: string, index: number) => {
+    const url = `${window.location.origin}/p=${index + 1}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Link copied to clipboard" });
   };
@@ -348,7 +348,10 @@ const AdminBlogs = () => {
   const handleCopy = () => {
     if (!blogs) return;
     const selectedData = blogs.filter(b => selectedIds.has(b.id));
-    const text = selectedData.map(b => `${b.title} - ${window.location.origin}/blog/${b.slug}`).join('\n');
+    const text = selectedData.map((b, idx) => {
+      const blogIndex = blogs.findIndex(blog => blog.id === b.id);
+      return `${b.title} - ${window.location.origin}/p=${blogIndex + 1}`;
+    }).join('\n');
     navigator.clipboard.writeText(text);
     toast({ title: "Copied to clipboard" });
   };
@@ -720,7 +723,10 @@ const AdminBlogs = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => copyLink(blog.slug)}
+                            onClick={() => {
+                              const blogIndex = blogs?.findIndex(b => b.id === blog.id) ?? 0;
+                              copyLink(blog.id, blogIndex);
+                            }}
                             title="Copy Link"
                           >
                             <Copy className="w-4 h-4" />
