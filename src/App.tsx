@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
+import Landing2 from "./pages/Landing2";
 import WebResults from "./pages/WebResults";
 import LinkRedirect from "./pages/LinkRedirect";
 import Prelander from "./pages/Prelander";
@@ -17,6 +18,7 @@ import AdminPrelander from "./pages/admin/AdminPrelander";
 import AdminBlogs from "./pages/admin/AdminBlogs";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminBulkEditor from "./pages/admin/AdminBulkEditor";
+import AdminFallbackUrls from "./pages/admin/AdminFallbackUrls";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/landing" element={<Landing />} />
+          <Route path="/landing2" element={<Landing2 />} />
           <Route path="/wr/:wrPage" element={<WebResults />} />
           <Route path="/link/:linkId" element={<LinkRedirect />} />
           <Route path="/prelander" element={<Prelander />} />
@@ -42,6 +45,7 @@ const App = () => (
           <Route path="/admin/blogs" element={<AdminBlogs />} />
           <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/bulk-web-result-editor" element={<AdminBulkEditor />} />
+          <Route path="/admin/fallback-urls" element={<AdminFallbackUrls />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

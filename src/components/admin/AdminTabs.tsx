@@ -13,6 +13,7 @@ const AdminTabs = () => {
     if (location.pathname.includes('/admin/blogs')) return 'blogs';
     if (location.pathname.includes('/admin/analytics')) return 'analytics';
     if (location.pathname.includes('/admin/bulk-web-result-editor')) return 'bulk';
+    if (location.pathname.includes('/admin/fallback-urls')) return 'fallback';
     return 'landing';
   };
 
@@ -38,6 +39,9 @@ const AdminTabs = () => {
         break;
       case 'bulk':
         navigate('/admin/bulk-web-result-editor');
+        break;
+      case 'fallback':
+        navigate('/admin/fallback-urls');
         break;
     }
   };
@@ -65,6 +69,9 @@ const AdminTabs = () => {
         </TabsTrigger>
         <TabsTrigger value="bulk" className="px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
           Bulk Editor
+        </TabsTrigger>
+        <TabsTrigger value="fallback" className="px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          Fallback URLs
         </TabsTrigger>
       </TabsList>
     </Tabs>

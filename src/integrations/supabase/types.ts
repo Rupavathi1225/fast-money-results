@@ -104,6 +104,36 @@ export type Database = {
           },
         ]
       }
+      fallback_urls: {
+        Row: {
+          allowed_countries: string[]
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          allowed_countries?: string[]
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          allowed_countries?: string[]
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       landing_settings: {
         Row: {
           created_at: string
