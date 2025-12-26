@@ -93,7 +93,7 @@ export interface EmailSubmission {
 }
 
 export const COUNTRIES = [
-  'worldwide',
+  'ALL',
   'United States',
   'United Kingdom',
   'Canada',

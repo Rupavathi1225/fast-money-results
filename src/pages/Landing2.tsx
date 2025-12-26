@@ -88,8 +88,12 @@ const Landing2 = () => {
     
     return allowedCountries.some(country => {
       const normalizedAllowed = country.toLowerCase().trim();
-      return normalizedAllowed === 'worldwide' || 
-             normalizedAllowed === normalizedUserCountry ||
+      // Check for ALL/worldwide first
+      if (normalizedAllowed === 'all' || normalizedAllowed === 'worldwide') {
+        return true;
+      }
+      // Check for exact or partial country match
+      return normalizedAllowed === normalizedUserCountry ||
              normalizedUserCountry.includes(normalizedAllowed) ||
              normalizedAllowed.includes(normalizedUserCountry);
     });
