@@ -345,8 +345,10 @@ export type Database = {
       web_result_update_history: {
         Row: {
           id: string
+          new_country_permissions: string[] | null
           new_title: string
           new_url: string
+          old_country_permissions: string[] | null
           old_title: string
           old_url: string
           updated_at: string
@@ -355,8 +357,10 @@ export type Database = {
         }
         Insert: {
           id?: string
+          new_country_permissions?: string[] | null
           new_title: string
           new_url: string
+          old_country_permissions?: string[] | null
           old_title: string
           old_url: string
           updated_at?: string
@@ -365,8 +369,10 @@ export type Database = {
         }
         Update: {
           id?: string
+          new_country_permissions?: string[] | null
           new_title?: string
           new_url?: string
+          old_country_permissions?: string[] | null
           old_title?: string
           old_url?: string
           updated_at?: string

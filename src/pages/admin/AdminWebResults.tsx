@@ -265,15 +265,22 @@ const AdminWebResults = () => {
     toast({ title: `Exported ${selectedIds.size} web results to CSV` });
   };
 
+  // Helper function to format country permissions for display
+  const formatCountryPermissions = (permissions: string[] | null): string => {
+    if (!permissions || permissions.length === 0) return 'Worldwide';
+    if (permissions.includes('worldwide')) return 'Worldwide';
+    return permissions.join(', ');
+  };
+
   // Copy with options - tab-separated format for spreadsheet compatibility
-  const handleCopyWithOption = (option: 'all' | 'title' | 'description' | 'link' | 'blog' | 'search' | 'date') => {
+  const handleCopyWithOption = (option: 'all' | 'title' | 'description' | 'link' | 'blog' | 'search' | 'date' | 'country') => {
     const selectedData = results.filter(r => selectedIds.has(r.id));
     
     let text = '';
     
     if (option === 'all') {
       // Header row
-      const headers = ['Web Result Title', 'Web Result Description', 'Blog', 'Related Search', 'Original Link', 'Date'];
+      const headers = ['Web Result Title', 'Web Result Description', 'Blog', 'Related Search', 'Original Link', 'Country', 'Date'];
       text = headers.join('\t') + '\n';
       
       // Data rows - tab-separated
@@ -287,6 +294,7 @@ const AdminWebResults = () => {
           blog?.title || 'No Blog',
           relatedSearch?.title || 'N/A',
           r.original_link,
+          formatCountryPermissions((r as any).country_permissions),
           new Date(r.created_at).toLocaleDateString()
         ];
         return columns.join('\t');
@@ -309,6 +317,8 @@ const AdminWebResults = () => {
             return relatedSearch?.title || 'No Related Search';
           case 'date':
             return new Date(r.created_at).toLocaleDateString();
+          case 'country':
+            return formatCountryPermissions((r as any).country_permissions);
           default:
             return r.title;
         }
@@ -329,13 +339,14 @@ const AdminWebResults = () => {
     const blog = relatedSearch ? blogs.find(b => b.id === relatedSearch.blog_id) : null;
     
     // Header row + data row
-    const headers = ['Title', 'Description', 'Blog', 'Related Search', 'Original Link', 'Date'];
+    const headers = ['Title', 'Description', 'Blog', 'Related Search', 'Original Link', 'Country', 'Date'];
     const data = [
       result.title,
       result.description || '',
       blog?.title || 'No Blog',
       relatedSearch?.title || 'N/A',
       result.original_link,
+      formatCountryPermissions((result as any).country_permissions),
       new Date(result.created_at).toLocaleDateString()
     ];
     
@@ -771,6 +782,9 @@ const AdminWebResults = () => {
                 <DropdownMenuItem onClick={() => handleCopyWithOption('date')}>
                   Copy Date
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleCopyWithOption('country')}>
+                  Copy Country
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -964,13 +978,14 @@ const AdminWebResults = () => {
                             Copy Shareable Link
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {
-                            const headers = ['Web Result Title', 'Web Result Description', 'Blog', 'Related Search', 'Original Link', 'Date'];
+                            const headers = ['Web Result Title', 'Web Result Description', 'Blog', 'Related Search', 'Original Link', 'Country', 'Date'];
                             const data = [
                               result.title,
                               result.description || '',
                               linkedBlog?.title || 'No Blog',
                               relatedSearch?.title || 'N/A',
                               result.original_link,
+                              formatCountryPermissions((result as any).country_permissions),
                               new Date(result.created_at).toLocaleDateString()
                             ];
                             const text = headers.join('\t') + '\n' + data.join('\t');
@@ -1014,6 +1029,12 @@ const AdminWebResults = () => {
                             toast({ title: "Copied date" });
                           }}>
                             Copy Date
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            navigator.clipboard.writeText(formatCountryPermissions((result as any).country_permissions));
+                            toast({ title: "Copied country" });
+                          }}>
+                            Copy Country
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

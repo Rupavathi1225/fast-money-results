@@ -18,10 +18,12 @@ interface ParsedRow {
   old_url?: string;
   new_title: string;
   new_url: string;
+  new_country?: string;
   matchedResult?: {
     id: string;
     title: string;
     original_link: string;
+    country_permissions: string[] | null;
   };
   status: "matched" | "not_found" | "error";
   errorMessage?: string;
@@ -43,6 +45,7 @@ const AdminBulkEditor = () => {
   const [manualUrlLink, setManualUrlLink] = useState("");
   const [manualWebResultTitle, setManualWebResultTitle] = useState("");
   const [manualOriginalLink, setManualOriginalLink] = useState("");
+  const [manualNewCountry, setManualNewCountry] = useState("");
 
   // Fetch all web results for matching
   const { data: webResults = [] } = useQuery({
@@ -50,12 +53,28 @@ const AdminBulkEditor = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("web_results")
-        .select("id, title, original_link")
+        .select("id, title, original_link, country_permissions")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
     },
   });
+
+  // Helper to format country permissions for display
+  const formatCountryPermissions = (permissions: string[] | null): string => {
+    if (!permissions || permissions.length === 0) return 'Worldwide';
+    if (permissions.includes('worldwide')) return 'Worldwide';
+    return permissions.join(', ');
+  };
+
+  // Parse country string to array
+  const parseCountryString = (countryStr: string | undefined): string[] | null => {
+    if (!countryStr || countryStr.trim().toLowerCase() === 'worldwide' || countryStr.trim() === '') {
+      return ['worldwide'];
+    }
+    // Split by comma and trim each value
+    return countryStr.split(',').map(c => c.trim()).filter(c => c !== '');
+  };
 
   // Helper to find column by normalized name (case-insensitive, trimmed)
   const findColumn = (row: Record<string, string>, possibleNames: string[]): string | undefined => {
@@ -99,11 +118,13 @@ const AdminBulkEditor = () => {
     const urlLinkVariants = ["Url Link", "Url_Link", "UrlLink", "URL Link"];
     const webResultTitleVariants = ["Web Result Title", "Web_Result_Title", "WebResultTitle"];
     const originalLinkVariants = ["Original Link", "Original_Link", "OriginalLink"];
+    const newCountryVariants = ["New Country", "New_Country", "NewCountry", "new_country", "Country"];
 
     const hasNewTitle = hasColumn(firstRow, nameVariants);
     const hasNewUrl = hasColumn(firstRow, urlLinkVariants);
     const hasWebResultTitle = hasColumn(firstRow, webResultTitleVariants);
     const hasOriginalLink = hasColumn(firstRow, originalLinkVariants);
+    const hasNewCountry = hasColumn(firstRow, newCountryVariants);
 
     if (!hasNewTitle || !hasNewUrl) {
       toast({
@@ -129,6 +150,7 @@ const AdminBulkEditor = () => {
       const originalLink = findColumn(row, originalLinkVariants);
       const newTitle = findColumn(row, nameVariants) || "";
       const newUrl = findColumn(row, urlLinkVariants) || "";
+      const newCountry = findColumn(row, newCountryVariants);
 
       let matchedResult: ParsedRow["matchedResult"];
       let status: ParsedRow["status"] = "not_found";
@@ -138,7 +160,12 @@ const AdminBulkEditor = () => {
       if (webResultTitle) {
         const match = webResults.find((r) => r.title.toLowerCase() === webResultTitle.toLowerCase());
         if (match) {
-          matchedResult = match;
+          matchedResult = {
+            id: match.id,
+            title: match.title,
+            original_link: match.original_link,
+            country_permissions: match.country_permissions,
+          };
           status = "matched";
         } else {
           errorMessage = "No web result found with this title";
@@ -148,7 +175,12 @@ const AdminBulkEditor = () => {
           (r) => r.original_link.toLowerCase() === originalLink.toLowerCase()
         );
         if (match) {
-          matchedResult = match;
+          matchedResult = {
+            id: match.id,
+            title: match.title,
+            original_link: match.original_link,
+            country_permissions: match.country_permissions,
+          };
           status = "matched";
         } else {
           errorMessage = "No web result found with this URL";
@@ -166,6 +198,7 @@ const AdminBulkEditor = () => {
         old_url: originalLink,
         new_title: newTitle,
         new_url: newUrl,
+        new_country: newCountry,
         matchedResult,
         status,
         errorMessage,
@@ -332,6 +365,8 @@ const AdminBulkEditor = () => {
 
     for (const row of selectedRows) {
       try {
+        const newCountryPermissions = row.new_country ? parseCountryString(row.new_country) : row.matchedResult!.country_permissions;
+        
         // Store history first
         const { error: historyError } = await supabase
           .from("web_result_update_history")
@@ -341,6 +376,8 @@ const AdminBulkEditor = () => {
             old_url: row.matchedResult!.original_link,
             new_title: row.new_title,
             new_url: row.new_url,
+            old_country_permissions: row.matchedResult!.country_permissions,
+            new_country_permissions: newCountryPermissions,
             updated_by: "admin",
           });
 
@@ -354,6 +391,7 @@ const AdminBulkEditor = () => {
           .update({
             title: row.new_title,
             original_link: row.new_url,
+            country_permissions: newCountryPermissions,
             updated_at: new Date().toISOString(),
           })
           .eq("id", row.matchedResult!.id);
@@ -421,7 +459,12 @@ const AdminBulkEditor = () => {
     if (manualWebResultTitle.trim()) {
       const match = webResults.find((r) => r.title.toLowerCase() === manualWebResultTitle.trim().toLowerCase());
       if (match) {
-        matchedResult = match;
+        matchedResult = {
+          id: match.id,
+          title: match.title,
+          original_link: match.original_link,
+          country_permissions: match.country_permissions,
+        };
         status = "matched";
       } else {
         errorMessage = "No web result found with this title";
@@ -431,7 +474,12 @@ const AdminBulkEditor = () => {
         (r) => r.original_link.toLowerCase() === manualOriginalLink.trim().toLowerCase()
       );
       if (match) {
-        matchedResult = match;
+        matchedResult = {
+          id: match.id,
+          title: match.title,
+          original_link: match.original_link,
+          country_permissions: match.country_permissions,
+        };
         status = "matched";
       } else {
         errorMessage = "No web result found with this URL";
@@ -444,6 +492,7 @@ const AdminBulkEditor = () => {
       old_url: manualOriginalLink.trim() || undefined,
       new_title: manualName.trim(),
       new_url: manualUrlLink.trim(),
+      new_country: manualNewCountry.trim() || undefined,
       matchedResult,
       status,
       errorMessage,
@@ -457,6 +506,7 @@ const AdminBulkEditor = () => {
     setManualUrlLink("");
     setManualWebResultTitle("");
     setManualOriginalLink("");
+    setManualNewCountry("");
 
     if (status === "matched") {
       toast({
@@ -564,7 +614,7 @@ const AdminBulkEditor = () => {
             {/* Manual Entry */}
             <div className="space-y-3">
               <p className="text-sm font-medium">Add Entry Manually</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">Name (new title) *</label>
                   <Input
@@ -579,6 +629,14 @@ const AdminBulkEditor = () => {
                     placeholder="https://example.com/new-url"
                     value={manualUrlLink}
                     onChange={(e) => setManualUrlLink(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">New Country (optional)</label>
+                  <Input
+                    placeholder="e.g., US, UK or worldwide"
+                    value={manualNewCountry}
+                    onChange={(e) => setManualNewCountry(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1">
@@ -664,8 +722,10 @@ const AdminBulkEditor = () => {
                       <TableHead className="w-24">Status</TableHead>
                       <TableHead>Current Title</TableHead>
                       <TableHead>Current URL</TableHead>
+                      <TableHead>Current Country</TableHead>
                       <TableHead>New Title</TableHead>
                       <TableHead>New URL</TableHead>
+                      <TableHead>New Country</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -701,11 +761,17 @@ const AdminBulkEditor = () => {
                         <TableCell className="max-w-48 truncate text-muted-foreground text-sm">
                           {row.matchedResult?.original_link || row.old_url || "-"}
                         </TableCell>
+                        <TableCell className="max-w-32 truncate text-muted-foreground text-sm">
+                          {formatCountryPermissions(row.matchedResult?.country_permissions || null)}
+                        </TableCell>
                         <TableCell className="max-w-48 truncate font-medium">
                           {row.new_title}
                         </TableCell>
                         <TableCell className="max-w-48 truncate text-sm">
                           {row.new_url}
+                        </TableCell>
+                        <TableCell className="max-w-32 truncate text-sm font-medium text-primary">
+                          {row.new_country || "-"}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -751,11 +817,17 @@ const AdminBulkEditor = () => {
               </ul>
             </div>
             <div>
+              <p className="font-medium text-foreground mb-2">Optional Columns:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li><code className="bg-muted px-1 rounded">New Country</code> - The new country permission (e.g., US, UK, AD, or worldwide)</li>
+              </ul>
+            </div>
+            <div>
               <p className="font-medium text-foreground mb-2">Example CSV:</p>
               <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-{`Web Result Title,Name,Url Link
-Old Title Here,New Title Here,https://example.com/new-url
-Another Old Title,New Title,https://example.com/another`}
+{`Web Result Title,Name,Url Link,New Country
+Old Title Here,New Title Here,https://example.com/new-url,US
+Another Old Title,New Title,https://example.com/another,AD`}
               </pre>
             </div>
           </CardContent>
