@@ -153,7 +153,8 @@ const WebResults = () => {
 
   const handleResultClick = async (result: WebResult, index: number) => {
     await trackClick(index + 1, result.id, window.location.href);
-    window.location.href = generateMaskedLink(result, index) + `&rid=${result.id}`;
+    // Redirect to /landing2 page instead of the original link
+    window.location.href = '/landing2';
   };
 
   const getLogoDisplay = (result: WebResult) => {
