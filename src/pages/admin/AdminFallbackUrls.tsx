@@ -9,6 +9,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { Plus, Trash2, Upload, Link, Globe, Calendar, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import CountryMultiSelect from "@/components/admin/CountryMultiSelect";
 import * as XLSX from 'xlsx';
 
 interface FallbackUrl {
@@ -26,7 +27,7 @@ const AdminFallbackUrls = () => {
   const [fallbackUrls, setFallbackUrls] = useState<FallbackUrl[]>([]);
   const [loading, setLoading] = useState(true);
   const [newUrl, setNewUrl] = useState("");
-  const [newCountries, setNewCountries] = useState("worldwide");
+  const [selectedCountries, setSelectedCountries] = useState<string[]>(["ALL"]);
   const [sheetUrl, setSheetUrl] = useState("");
   const [isAddingFromSheet, setIsAddingFromSheet] = useState(false);
 
@@ -66,12 +67,12 @@ const AdminFallbackUrls = () => {
     }
 
     try {
-      const countries = newCountries.split(',').map(c => c.trim()).filter(c => c);
+      const countries = selectedCountries.length > 0 ? selectedCountries : ['ALL'];
       const maxOrder = fallbackUrls.length > 0 ? Math.max(...fallbackUrls.map(u => u.display_order)) : 0;
 
       const { error } = await supabase.from('fallback_urls').insert({
         url: newUrl.trim(),
-        allowed_countries: countries.length > 0 ? countries : ['worldwide'],
+        allowed_countries: countries,
         display_order: maxOrder + 1,
       });
 
@@ -83,7 +84,7 @@ const AdminFallbackUrls = () => {
       });
 
       setNewUrl("");
-      setNewCountries("worldwide");
+      setSelectedCountries(["ALL"]);
       fetchFallbackUrls();
     } catch (error) {
       console.error('Error adding fallback URL:', error);
@@ -355,12 +356,11 @@ const AdminFallbackUrls = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Allowed Countries (comma-separated)</Label>
-                <Input
-                  value={newCountries}
-                  onChange={(e) => setNewCountries(e.target.value)}
-                  placeholder="worldwide, India, USA"
-                  className="admin-input"
+                <Label>Allowed Countries</Label>
+                <CountryMultiSelect
+                  value={selectedCountries}
+                  onChange={setSelectedCountries}
+                  placeholder="Select countries..."
                 />
               </div>
             </div>
