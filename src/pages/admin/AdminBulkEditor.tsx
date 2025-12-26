@@ -114,8 +114,8 @@ const AdminBulkEditor = () => {
 
     // Validate required columns (case-insensitive)
     const firstRow = filteredData[0];
-    const nameVariants = ["Name"];
-    const urlLinkVariants = ["Url Link", "Url_Link", "UrlLink", "URL Link"];
+    const nameVariants = ["Name", "new_title", "New Title", "New_Title", "title"];
+    const urlLinkVariants = ["Url Link", "Url_Link", "UrlLink", "URL Link", "new_url", "New URL", "New_Url", "url"];
     const webResultTitleVariants = ["Web Result Title", "Web_Result_Title", "WebResultTitle"];
     const originalLinkVariants = ["Original Link", "Original_Link", "OriginalLink"];
     const newCountryVariants = ["New Country", "New_Country", "NewCountry", "new_country", "Country"];
