@@ -2,31 +2,13 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult, LandingSettings } from "@/types/database";
-import { trackClick, getIpInfo, generateRandomToken, generateSessionId, getDeviceType } from "@/lib/tracking";
-import { getNextAllowedFallback } from "@/lib/fallbackAccess";
+import { trackClick, generateRandomToken } from "@/lib/tracking";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
-// Track fallback URL click in landing2_tracking
-const trackFallbackClick = async (
-  sessionId: string,
-  ipAddress: string,
-  country: string,
-  deviceType: string,
-  fallbackUrlId: string
-) => {
-  try {
-    await supabase.from("landing2_tracking").insert({
-      session_id: sessionId,
-      ip_address: ipAddress,
-      country: country,
-      device_type: deviceType,
-      user_agent: navigator.userAgent,
-      event_type: "fallback_click",
-      fallback_url_id: fallbackUrlId,
-    });
-  } catch (error) {
-    console.error("Error tracking fallback click:", error);
-  }
+// Generate random token for URL
+const generateRandomWord = () => {
+  const words = ["quick", "fast", "smart", "easy", "safe", "best", "top", "new", "pro", "max"];
+  return words[Math.floor(Math.random() * words.length)] + Math.random().toString(36).substring(2, 6);
 };
 
 interface RelatedSearch {
@@ -42,44 +24,7 @@ interface Blog {
   title: string;
 }
 
-interface FallbackUrl {
-  id: string;
-  url: string;
-  allowed_countries: string[];
-  display_order: number;
-}
 
-// Generate random word-like token
-const generateRandomWord = () => {
-  const words = [
-    "quick",
-    "fast",
-    "smart",
-    "easy",
-    "safe",
-    "best",
-    "top",
-    "new",
-    "pro",
-    "max",
-    "plus",
-    "prime",
-    "ultra",
-    "mega",
-    "super",
-    "hyper",
-    "elite",
-    "apex",
-    "peak",
-    "core",
-  ];
-  return (
-    words[Math.floor(Math.random() * words.length)] +
-    generateRandomToken().substring(0, 4)
-  );
-};
-
-const FALLBACK_CURSOR_KEY = "fm_fallback_cursor";
 
 const WebResults = () => {
   const { wrPage } = useParams();
@@ -92,60 +37,11 @@ const WebResults = () => {
   const [relatedSearch, setRelatedSearch] = useState<RelatedSearch | null>(null);
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
-  const [fallbackUrls, setFallbackUrls] = useState<FallbackUrl[]>([]);
-  const [userCountry, setUserCountry] = useState<string>("");
-  const [ipAddress, setIpAddress] = useState<string>("");
 
   useEffect(() => {
     fetchData();
-    getUserCountry();
   }, [pageNumber, resultId]);
 
-  const getUserCountry = async () => {
-    const { country, ipAddress: ip } = await getIpInfo();
-    setUserCountry(country || "Unknown");
-    setIpAddress(ip || "");
-  };
-
-  // Check if user's country is allowed for the *main* URL
-  const isCountryAllowed = (
-    allowedCountries: string[] | null,
-    userCountryValue: string
-  ): boolean => {
-    // If no country restrictions, allow access (worldwide)
-    if (!allowedCountries || allowedCountries.length === 0) return true;
-
-    const normalizedUserCountry = userCountryValue.toLowerCase().trim();
-
-    return allowedCountries.some((country) => {
-      const normalizedAllowed = country.toLowerCase().trim();
-      // Worldwide/All means accessible to everyone
-      if (normalizedAllowed === "all" || normalizedAllowed === "worldwide") {
-        return true;
-      }
-      // Exact match only (prevents Austria matching Australia)
-      return normalizedAllowed === normalizedUserCountry;
-    });
-  };
-
-  const redirectToNextAllowedFallback = async () => {
-    const last = parseInt(localStorage.getItem(FALLBACK_CURSOR_KEY) || "-1", 10);
-    const { next, nextIndex } = getNextAllowedFallback(fallbackUrls, userCountry, last);
-
-    if (!next) {
-      const randomToken = generateRandomToken();
-      window.location.href = `/q?t=${randomToken}&na=1`;
-      return;
-    }
-
-    // Track the fallback click
-    const sessionId = generateSessionId();
-    const deviceType = getDeviceType();
-    await trackFallbackClick(sessionId, ipAddress, userCountry, deviceType, next.id);
-
-    localStorage.setItem(FALLBACK_CURSOR_KEY, String(nextIndex));
-    window.location.href = next.url;
-  };
 
   useEffect(() => {
     if (blog) {
@@ -173,7 +69,7 @@ const WebResults = () => {
         resultsQuery = resultsQuery.eq('web_result_page', pageNumber);
       }
 
-      const [settingsRes, resultsRes, relatedSearchRes, fallbackRes] = await Promise.all([
+      const [settingsRes, resultsRes, relatedSearchRes] = await Promise.all([
         supabase.from('landing_settings').select('*').single(),
         resultsQuery,
         supabase
@@ -182,16 +78,7 @@ const WebResults = () => {
           .eq('web_result_page', pageNumber)
           .eq('is_active', true)
           .maybeSingle(),
-        supabase
-          .from('fallback_urls')
-          .select('*')
-          .eq('is_active', true)
-          .order('display_order', { ascending: true }),
       ]);
-
-      if (fallbackRes.data) {
-        setFallbackUrls(fallbackRes.data);
-      }
 
       if (settingsRes.data) {
         setSettings(settingsRes.data as LandingSettings);
@@ -260,16 +147,9 @@ const WebResults = () => {
   const handleResultClick = async (result: WebResult, index: number) => {
     await trackClick(index + 1, result.id, window.location.href);
 
-    // Per requirement: every click must go through the fallback URL library in display_order sequence,
-    // opening only URLs allowed for the user's country (or worldwide), and skipping other countries.
-    if (fallbackUrls.length > 0) {
-      await redirectToNextAllowedFallback();
-      return;
-    }
-
-    // No fallback URLs configured
+    // Redirect to /landing2 (QPage) which handles 5-second timer and fallback URL sequence
     const randomToken = generateRandomToken();
-    window.location.href = `/q?t=${randomToken}&na=1`;
+    window.location.href = `/q?t=${randomToken}`;
   };
 
   const getLogoDisplay = (result: WebResult) => {
