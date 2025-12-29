@@ -2,9 +2,32 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult, LandingSettings } from "@/types/database";
-import { trackClick, getIpInfo, generateRandomToken } from "@/lib/tracking";
+import { trackClick, getIpInfo, generateRandomToken, generateSessionId, getDeviceType } from "@/lib/tracking";
 import { getNextAllowedFallback } from "@/lib/fallbackAccess";
 import { ArrowLeft, ExternalLink } from "lucide-react";
+
+// Track fallback URL click in landing2_tracking
+const trackFallbackClick = async (
+  sessionId: string,
+  ipAddress: string,
+  country: string,
+  deviceType: string,
+  fallbackUrlId: string
+) => {
+  try {
+    await supabase.from("landing2_tracking").insert({
+      session_id: sessionId,
+      ip_address: ipAddress,
+      country: country,
+      device_type: deviceType,
+      user_agent: navigator.userAgent,
+      event_type: "fallback_click",
+      fallback_url_id: fallbackUrlId,
+    });
+  } catch (error) {
+    console.error("Error tracking fallback click:", error);
+  }
+};
 
 interface RelatedSearch {
   id: string;
@@ -71,6 +94,7 @@ const WebResults = () => {
   const [loading, setLoading] = useState(true);
   const [fallbackUrls, setFallbackUrls] = useState<FallbackUrl[]>([]);
   const [userCountry, setUserCountry] = useState<string>("");
+  const [ipAddress, setIpAddress] = useState<string>("");
 
   useEffect(() => {
     fetchData();
@@ -78,8 +102,9 @@ const WebResults = () => {
   }, [pageNumber, resultId]);
 
   const getUserCountry = async () => {
-    const { country } = await getIpInfo();
+    const { country, ipAddress: ip } = await getIpInfo();
     setUserCountry(country || "Unknown");
+    setIpAddress(ip || "");
   };
 
   // Check if user's country is allowed for the *main* URL
@@ -103,7 +128,7 @@ const WebResults = () => {
     });
   };
 
-  const redirectToNextAllowedFallback = () => {
+  const redirectToNextAllowedFallback = async () => {
     const last = parseInt(localStorage.getItem(FALLBACK_CURSOR_KEY) || "-1", 10);
     const { next, nextIndex } = getNextAllowedFallback(fallbackUrls, userCountry, last);
 
@@ -112,6 +137,11 @@ const WebResults = () => {
       window.location.href = `/q?t=${randomToken}&na=1`;
       return;
     }
+
+    // Track the fallback click
+    const sessionId = generateSessionId();
+    const deviceType = getDeviceType();
+    await trackFallbackClick(sessionId, ipAddress, userCountry, deviceType, next.id);
 
     localStorage.setItem(FALLBACK_CURSOR_KEY, String(nextIndex));
     window.location.href = next.url;
@@ -233,7 +263,7 @@ const WebResults = () => {
     // Per requirement: every click must go through the fallback URL library in display_order sequence,
     // opening only URLs allowed for the user's country (or worldwide), and skipping other countries.
     if (fallbackUrls.length > 0) {
-      redirectToNextAllowedFallback();
+      await redirectToNextAllowedFallback();
       return;
     }
 
