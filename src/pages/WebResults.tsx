@@ -230,20 +230,16 @@ const WebResults = () => {
   const handleResultClick = async (result: WebResult, index: number) => {
     await trackClick(index + 1, result.id, window.location.href);
 
-    // STEP 1: Check if main URL is allowed for user's country
-    if (isCountryAllowed(result.country_permissions, userCountry)) {
-      window.location.href = result.original_link;
+    // Per requirement: every click must go through the fallback URL library in display_order sequence,
+    // opening only URLs allowed for the user's country (or worldwide), and skipping other countries.
+    if (fallbackUrls.length > 0) {
+      redirectToNextAllowedFallback();
       return;
     }
 
-    // STEP 2: Main URL not allowed, go through fallback URLs in display_order sequence,
-    // skipping any countries the user is not allowed to access.
-    if (fallbackUrls.length > 0) {
-      redirectToNextAllowedFallback();
-    } else {
-      const randomToken = generateRandomToken();
-      window.location.href = `/q?t=${randomToken}&na=1`;
-    }
+    // No fallback URLs configured
+    const randomToken = generateRandomToken();
+    window.location.href = `/q?t=${randomToken}&na=1`;
   };
 
   const getLogoDisplay = (result: WebResult) => {
