@@ -56,6 +56,26 @@ const WebResults = () => {
     setUserCountry(country || "Unknown");
   };
 
+  // Check if user's country is allowed for the URL
+  const isCountryAllowed = (allowedCountries: string[] | null, userCountry: string): boolean => {
+    // If no country restrictions, allow access (worldwide)
+    if (!allowedCountries || allowedCountries.length === 0) return true;
+    
+    const normalizedUserCountry = userCountry.toLowerCase().trim();
+    
+    return allowedCountries.some(country => {
+      const normalizedAllowed = country.toLowerCase().trim();
+      // Worldwide/All means accessible to everyone
+      if (normalizedAllowed === 'all' || normalizedAllowed === 'worldwide') {
+        return true;
+      }
+      // Check for specific country match
+      return normalizedAllowed === normalizedUserCountry ||
+             normalizedUserCountry.includes(normalizedAllowed) ||
+             normalizedAllowed.includes(normalizedUserCountry);
+    });
+  };
+
   // Check if URL has specific country match (not worldwide)
   const hasSpecificCountryMatch = (allowedCountries: string[], userCountry: string): boolean => {
     if (!allowedCountries || allowedCountries.length === 0) return false;
@@ -68,9 +88,7 @@ const WebResults = () => {
       if (normalizedAllowed === 'all' || normalizedAllowed === 'worldwide') {
         return false;
       }
-      return normalizedAllowed === normalizedUserCountry ||
-             normalizedUserCountry.includes(normalizedAllowed) ||
-             normalizedAllowed.includes(normalizedUserCountry);
+      return normalizedAllowed === normalizedUserCountry;
     });
   };
 
@@ -82,30 +100,29 @@ const WebResults = () => {
     );
   };
 
-  const findAndRedirectToAllowedUrl = () => {
-    // STEP 1: First, look for URLs that match user's SPECIFIC country (not worldwide)
-    for (let i = 0; i < fallbackUrls.length; i++) {
-      const currentUrl = fallbackUrls[i];
-      if (hasSpecificCountryMatch(currentUrl.allowed_countries, userCountry)) {
-        console.log(`Redirecting to country-specific URL: ${currentUrl.url} for country: ${userCountry}`);
-        window.location.href = currentUrl.url;
+  // Find allowed fallback URL and redirect
+  const findAndRedirectToFallbackUrl = () => {
+    // Priority 1: User's country-specific fallback
+    for (const fallback of fallbackUrls) {
+      if (hasSpecificCountryMatch(fallback.allowed_countries, userCountry)) {
+        console.log(`Fallback: Redirecting to country-specific URL: ${fallback.url} for country: ${userCountry}`);
+        window.location.href = fallback.url;
         return;
       }
     }
     
-    // STEP 2: If no specific country match, look for worldwide URLs
-    for (let i = 0; i < fallbackUrls.length; i++) {
-      const currentUrl = fallbackUrls[i];
-      if (isWorldwide(currentUrl.allowed_countries)) {
-        console.log(`Redirecting to worldwide URL: ${currentUrl.url}`);
-        window.location.href = currentUrl.url;
+    // Priority 2: Worldwide fallback
+    for (const fallback of fallbackUrls) {
+      if (isWorldwide(fallback.allowed_countries)) {
+        console.log(`Fallback: Redirecting to worldwide URL: ${fallback.url}`);
+        window.location.href = fallback.url;
         return;
       }
     }
     
-    // STEP 3: If no match at all, redirect to /q page
+    // No fallback found - redirect to /q page with "not available" state
     const randomToken = generateRandomToken();
-    window.location.href = `/q?t=${randomToken}`;
+    window.location.href = `/q?t=${randomToken}&na=1`;
   };
 
   useEffect(() => {
@@ -220,13 +237,22 @@ const WebResults = () => {
 
   const handleResultClick = async (result: WebResult, index: number) => {
     await trackClick(index + 1, result.id, window.location.href);
-    // Find and redirect to first allowed fallback URL based on country
-    if (fallbackUrls.length > 0 && userCountry) {
-      findAndRedirectToAllowedUrl();
+    
+    // STEP 1: Check if main URL is allowed for user's country
+    if (isCountryAllowed(result.country_permissions, userCountry)) {
+      console.log(`Main URL allowed for country ${userCountry}: ${result.original_link}`);
+      window.location.href = result.original_link;
+      return;
+    }
+    
+    // STEP 2: Main URL not allowed, check fallback URLs
+    console.log(`Main URL not allowed for country ${userCountry}, checking fallbacks...`);
+    if (fallbackUrls.length > 0) {
+      findAndRedirectToFallbackUrl();
     } else {
-      // If no fallback URLs or country not detected yet, go to /q page
+      // No fallback URLs available
       const randomToken = generateRandomToken();
-      window.location.href = `/q?t=${randomToken}`;
+      window.location.href = `/q?t=${randomToken}&na=1`;
     }
   };
 
