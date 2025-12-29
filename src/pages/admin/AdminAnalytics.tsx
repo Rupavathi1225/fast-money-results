@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { 
   Search, MousePointer, Users, Globe, Monitor, Smartphone, RefreshCw, 
-  ChevronDown, ChevronUp, Mail, Eye 
+  ChevronDown, ChevronUp, Mail, Eye, ExternalLink 
 } from "lucide-react";
 
 interface SessionAnalytics {
@@ -20,6 +20,25 @@ interface SessionAnalytics {
   uniqueClicks: number;
   relatedSearchClicks: { name: string; count: number }[];
   webResultClicks: { name: string; count: number }[];
+  landing2Views: number;
+  landing2Clicks: number;
+  fallbackClicks: { url: string; count: number }[];
+}
+
+interface Landing2Tracking {
+  id: string;
+  session_id: string;
+  ip_address: string;
+  device_type: string;
+  country: string;
+  event_type: string;
+  fallback_url_id: string | null;
+  created_at: string;
+}
+
+interface FallbackUrl {
+  id: string;
+  url: string;
 }
 
 const AdminAnalytics = () => {
@@ -31,9 +50,13 @@ const AdminAnalytics = () => {
   const [uniqueSessions, setUniqueSessions] = useState(0);
   const [webResultCount, setWebResultCount] = useState(0);
   const [emailSubmissions, setEmailSubmissions] = useState(0);
+  const [landing2Views, setLanding2Views] = useState(0);
+  const [landing2Clicks, setLanding2Clicks] = useState(0);
+  const [fallbackClicks, setFallbackClicks] = useState(0);
   const [sessionAnalytics, setSessionAnalytics] = useState<SessionAnalytics[]>([]);
   const [relatedSearches, setRelatedSearches] = useState<RelatedSearch[]>([]);
   const [webResults, setWebResults] = useState<WebResult[]>([]);
+  const [fallbackUrls, setFallbackUrls] = useState<FallbackUrl[]>([]);
 
   useEffect(() => {
     fetchAnalytics();
@@ -42,12 +65,14 @@ const AdminAnalytics = () => {
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      const [clicksRes, sessionsRes, resultsRes, searchesRes, emailsRes] = await Promise.all([
+      const [clicksRes, sessionsRes, resultsRes, searchesRes, emailsRes, landing2Res, fallbackUrlsRes] = await Promise.all([
         supabase.from('link_tracking').select('*').order('clicked_at', { ascending: false }),
         supabase.from('sessions').select('*').order('last_activity', { ascending: false }),
         supabase.from('web_results').select('*'),
         supabase.from('related_searches').select('*'),
         supabase.from('email_submissions').select('*'),
+        supabase.from('landing2_tracking').select('*').order('created_at', { ascending: false }),
+        supabase.from('fallback_urls').select('id, url'),
       ]);
 
       const clicks = (clicksRes.data || []) as LinkTracking[];
@@ -55,13 +80,24 @@ const AdminAnalytics = () => {
       const results = (resultsRes.data || []) as WebResult[];
       const searches = (searchesRes.data || []) as RelatedSearch[];
       const emails = (emailsRes.data || []) as EmailSubmission[];
+      const landing2Data = (landing2Res.data || []) as Landing2Tracking[];
+      const fallbackUrlsData = (fallbackUrlsRes.data || []) as FallbackUrl[];
 
       setRelatedSearches(searches);
       setWebResults(results);
+      setFallbackUrls(fallbackUrlsData);
       setTotalClicks(clicks.length);
       setUniqueSessions(sessions.length);
       setWebResultCount(results.length);
       setEmailSubmissions(emails.length);
+
+      // Calculate landing2 stats
+      const l2Views = landing2Data.filter(d => d.event_type === 'view').length;
+      const l2Clicks = landing2Data.filter(d => d.event_type === 'click').length;
+      const fbClicks = landing2Data.filter(d => d.event_type === 'fallback_click').length;
+      setLanding2Views(l2Views);
+      setLanding2Clicks(l2Clicks);
+      setFallbackClicks(fbClicks);
 
       // Build session analytics
       const sessionMap = new Map<string, SessionAnalytics>();
@@ -78,6 +114,9 @@ const AdminAnalytics = () => {
           uniqueClicks: 0,
           relatedSearchClicks: [],
           webResultClicks: [],
+          landing2Views: 0,
+          landing2Clicks: 0,
+          fallbackClicks: [],
         });
       });
 
@@ -105,6 +144,9 @@ const AdminAnalytics = () => {
             uniqueClicks: 0,
             relatedSearchClicks: [],
             webResultClicks: [],
+            landing2Views: 0,
+            landing2Clicks: 0,
+            fallbackClicks: [],
           };
           sessionMap.set(c.session_id, analytics);
         }
@@ -132,6 +174,44 @@ const AdminAnalytics = () => {
             existing.count++;
           } else {
             analytics.webResultClicks.push({ name: resultName, count: 1 });
+          }
+        }
+      });
+
+      // Add landing2 tracking to session analytics
+      landing2Data.forEach(l2 => {
+        let analytics = sessionMap.get(l2.session_id);
+        if (!analytics) {
+          analytics = {
+            session_id: l2.session_id,
+            ip_address: l2.ip_address || '',
+            country: l2.country || 'Unknown',
+            source: 'direct',
+            device_type: l2.device_type || 'desktop',
+            pageViews: 1,
+            totalClicks: 0,
+            uniqueClicks: 0,
+            relatedSearchClicks: [],
+            webResultClicks: [],
+            landing2Views: 0,
+            landing2Clicks: 0,
+            fallbackClicks: [],
+          };
+          sessionMap.set(l2.session_id, analytics);
+        }
+
+        if (l2.event_type === 'view') {
+          analytics.landing2Views++;
+        } else if (l2.event_type === 'click') {
+          analytics.landing2Clicks++;
+        } else if (l2.event_type === 'fallback_click' && l2.fallback_url_id) {
+          const fallback = fallbackUrlsData.find(f => f.id === l2.fallback_url_id);
+          const fallbackUrl = fallback?.url || 'Unknown URL';
+          const existing = analytics.fallbackClicks.find(f => f.url === fallbackUrl);
+          if (existing) {
+            existing.count++;
+          } else {
+            analytics.fallbackClicks.push({ url: fallbackUrl, count: 1 });
           }
         }
       });
@@ -221,6 +301,39 @@ const AdminAnalytics = () => {
           </div>
         </div>
 
+        {/* Landing2 Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="stat-card">
+            <div className="flex items-center gap-3">
+              <Eye className="w-8 h-8 text-blue-500" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{landing2Views}</p>
+                <p className="text-sm text-muted-foreground">/landing2 Views</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="flex items-center gap-3">
+              <MousePointer className="w-8 h-8 text-green-500" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{landing2Clicks}</p>
+                <p className="text-sm text-muted-foreground">/landing2 Clicks</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="flex items-center gap-3">
+              <ExternalLink className="w-8 h-8 text-orange-500" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{fallbackClicks}</p>
+                <p className="text-sm text-muted-foreground">Fallback URL Clicks</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Session Analytics */}
         <div className="admin-card">
           <h3 className="text-lg font-semibold text-primary mb-4">Session Analytics</h3>
@@ -242,11 +355,11 @@ const AdminAnalytics = () => {
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">Session ID</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">IP Address</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">Country</th>
-                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Source</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">Device</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">Clicks</th>
-                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Related Searches</th>
-                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Web Results</th>
+                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">/landing2 Views</th>
+                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">/landing2 Clicks</th>
+                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Fallback Clicks</th>
                 </tr>
               </thead>
               <tbody>
@@ -267,9 +380,6 @@ const AdminAnalytics = () => {
                       <td className="py-3 px-4 text-muted-foreground">
                         {session.country}
                       </td>
-                      <td className="py-3 px-4 text-muted-foreground">
-                        {session.source}
-                      </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-1 rounded text-xs ${
                           session.device_type === 'mobile' 
@@ -286,17 +396,18 @@ const AdminAnalytics = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        <button className="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-xs">
-                          Total: {session.relatedSearchClicks.reduce((a, b) => a + b.count, 0)}
-                          {expandedSession === session.session_id ? 
-                            <ChevronUp className="w-3 h-3" /> : 
-                            <ChevronDown className="w-3 h-3" />
-                          }
-                        </button>
+                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-medium">
+                          {session.landing2Views}
+                        </span>
                       </td>
                       <td className="py-3 px-4">
-                        <button className="flex items-center gap-1 px-2 py-1 bg-accent/20 text-accent rounded text-xs">
-                          Total: {session.webResultClicks.reduce((a, b) => a + b.count, 0)}
+                        <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-medium">
+                          {session.landing2Clicks}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <button className="flex items-center gap-1 px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs">
+                          {session.fallbackClicks.reduce((a, b) => a + b.count, 0)}
                           {expandedSession === session.session_id ? 
                             <ChevronUp className="w-3 h-3" /> : 
                             <ChevronDown className="w-3 h-3" />
@@ -308,11 +419,11 @@ const AdminAnalytics = () => {
                     {expandedSession === session.session_id && (
                       <tr className="bg-secondary/10">
                         <td colSpan={8} className="py-4 px-8">
-                          <div className="grid grid-cols-2 gap-6">
+                          <div className="grid grid-cols-3 gap-6">
                             {/* Related Searches Breakdown */}
                             <div>
                               <h4 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                                <Eye className="w-4 h-4" /> Related Searches Breakdown
+                                <Eye className="w-4 h-4" /> Related Searches
                               </h4>
                               {session.relatedSearchClicks.length === 0 ? (
                                 <p className="text-xs text-muted-foreground">No clicks</p>
@@ -320,8 +431,8 @@ const AdminAnalytics = () => {
                                 <ul className="space-y-1">
                                   {session.relatedSearchClicks.map((item, i) => (
                                     <li key={i} className="text-xs text-muted-foreground flex justify-between">
-                                      <span>{item.name}</span>
-                                      <span className="font-medium text-foreground">{item.count} clicks</span>
+                                      <span className="truncate max-w-[150px]">{item.name}</span>
+                                      <span className="font-medium text-foreground">{item.count}</span>
                                     </li>
                                   ))}
                                 </ul>
@@ -330,7 +441,7 @@ const AdminAnalytics = () => {
                             {/* Web Results Breakdown */}
                             <div>
                               <h4 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                                <Eye className="w-4 h-4" /> Web Results Breakdown
+                                <Eye className="w-4 h-4" /> Web Results
                               </h4>
                               {session.webResultClicks.length === 0 ? (
                                 <p className="text-xs text-muted-foreground">No clicks</p>
@@ -338,8 +449,26 @@ const AdminAnalytics = () => {
                                 <ul className="space-y-1">
                                   {session.webResultClicks.map((item, i) => (
                                     <li key={i} className="text-xs text-muted-foreground flex justify-between">
-                                      <span>{item.name}</span>
-                                      <span className="font-medium text-foreground">{item.count} clicks</span>
+                                      <span className="truncate max-w-[150px]">{item.name}</span>
+                                      <span className="font-medium text-foreground">{item.count}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                            {/* Fallback URLs Breakdown */}
+                            <div>
+                              <h4 className="text-sm font-semibold text-orange-400 mb-2 flex items-center gap-2">
+                                <ExternalLink className="w-4 h-4" /> Fallback URLs
+                              </h4>
+                              {session.fallbackClicks.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">No clicks</p>
+                              ) : (
+                                <ul className="space-y-1">
+                                  {session.fallbackClicks.map((item, i) => (
+                                    <li key={i} className="text-xs text-muted-foreground flex justify-between">
+                                      <span className="truncate max-w-[150px]">{item.url}</span>
+                                      <span className="font-medium text-foreground">{item.count}</span>
                                     </li>
                                   ))}
                                 </ul>
