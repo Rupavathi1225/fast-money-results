@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import Landing2 from "./pages/Landing2";
+import QPage from "./pages/QPage";
 import WebResults from "./pages/WebResults";
 import LinkRedirect from "./pages/LinkRedirect";
 import Prelander from "./pages/Prelander";
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/landing" element={<Landing />} />
           <Route path="/landing2" element={<Landing2 />} />
+          <Route path="/q" element={<QPage />} />
           <Route path="/wr/:wrPage" element={<WebResults />} />
           <Route path="/link/:linkId" element={<LinkRedirect />} />
           <Route path="/prelander" element={<Prelander />} />

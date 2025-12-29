@@ -161,6 +161,50 @@ export type Database = {
         }
         Relationships: []
       }
+      landing2_tracking: {
+        Row: {
+          country: string | null
+          created_at: string
+          device_type: string | null
+          event_type: string
+          fallback_url_id: string | null
+          id: string
+          ip_address: string | null
+          session_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          event_type: string
+          fallback_url_id?: string | null
+          id?: string
+          ip_address?: string | null
+          session_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          event_type?: string
+          fallback_url_id?: string | null
+          id?: string
+          ip_address?: string | null
+          session_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "landing2_tracking_fallback_url_id_fkey"
+            columns: ["fallback_url_id"]
+            isOneToOne: false
+            referencedRelation: "fallback_urls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       link_tracking: {
         Row: {
           clicked_at: string

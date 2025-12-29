@@ -10,6 +10,16 @@ export const generateSessionId = (): string => {
   return newSession;
 };
 
+// Generate random token for masked URLs
+export const generateRandomToken = (): string => {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
 export const getDeviceType = (): string => {
   const userAgent = navigator.userAgent.toLowerCase();
   if (/mobile|android|iphone|ipad|tablet/i.test(userAgent)) {

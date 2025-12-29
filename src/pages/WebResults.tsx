@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult, LandingSettings } from "@/types/database";
-import { trackClick, getIpInfo } from "@/lib/tracking";
+import { trackClick, getIpInfo, generateRandomToken } from "@/lib/tracking";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
 interface RelatedSearch {
@@ -24,16 +24,6 @@ interface FallbackUrl {
   allowed_countries: string[];
   display_order: number;
 }
-
-// Generate random alphanumeric token
-const generateRandomToken = () => {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-};
 
 // Generate random word-like token
 const generateRandomWord = () => {
@@ -83,7 +73,7 @@ const WebResults = () => {
   };
 
   const findAndRedirectToAllowedUrl = () => {
-    // Iterate through fallback URLs in order and find first allowed one
+    // Iterate through fallback URLs in display_order and find first allowed one
     for (let i = 0; i < fallbackUrls.length; i++) {
       const currentUrl = fallbackUrls[i];
       if (isCountryAllowed(currentUrl.allowed_countries, userCountry)) {
@@ -92,16 +82,9 @@ const WebResults = () => {
       }
     }
     
-    // If no country-specific match, try to find a worldwide URL
-    for (const url of fallbackUrls) {
-      if (url.allowed_countries.some(c => c.toLowerCase() === 'all' || c.toLowerCase() === 'worldwide')) {
-        window.location.href = url.url;
-        return;
-      }
-    }
-    
-    // Fallback to /landing2 if no URLs available
-    window.location.href = '/landing2';
+    // If no country-specific match found, redirect to /q page with random token
+    const randomToken = generateRandomToken();
+    window.location.href = `/q?t=${randomToken}`;
   };
 
   useEffect(() => {
@@ -220,8 +203,9 @@ const WebResults = () => {
     if (fallbackUrls.length > 0 && userCountry) {
       findAndRedirectToAllowedUrl();
     } else {
-      // If no fallback URLs or country not detected yet, go to landing2
-      window.location.href = '/landing2';
+      // If no fallback URLs or country not detected yet, go to /q page
+      const randomToken = generateRandomToken();
+      window.location.href = `/q?t=${randomToken}`;
     }
   };
 
