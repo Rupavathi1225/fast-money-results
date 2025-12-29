@@ -1,8 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult, LandingSettings } from "@/types/database";
 import { trackClick, getIpInfo, generateRandomToken } from "@/lib/tracking";
+import { getNextAllowedFallback } from "@/lib/fallbackAccess";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
 interface RelatedSearch {
@@ -27,16 +28,42 @@ interface FallbackUrl {
 
 // Generate random word-like token
 const generateRandomWord = () => {
-  const words = ['quick', 'fast', 'smart', 'easy', 'safe', 'best', 'top', 'new', 'pro', 'max', 'plus', 'prime', 'ultra', 'mega', 'super', 'hyper', 'elite', 'apex', 'peak', 'core'];
-  return words[Math.floor(Math.random() * words.length)] + generateRandomToken().substring(0, 4);
+  const words = [
+    "quick",
+    "fast",
+    "smart",
+    "easy",
+    "safe",
+    "best",
+    "top",
+    "new",
+    "pro",
+    "max",
+    "plus",
+    "prime",
+    "ultra",
+    "mega",
+    "super",
+    "hyper",
+    "elite",
+    "apex",
+    "peak",
+    "core",
+  ];
+  return (
+    words[Math.floor(Math.random() * words.length)] +
+    generateRandomToken().substring(0, 4)
+  );
 };
+
+const FALLBACK_CURSOR_KEY = "fm_fallback_cursor";
 
 const WebResults = () => {
   const { wrPage } = useParams();
   const [searchParams] = useSearchParams();
-  const fromBlog = searchParams.get('from'); // e.g., blog slug
-  const resultId = searchParams.get('result_id'); // specific web result to show
-  const pageNumber = parseInt(wrPage || '1');
+  const fromBlog = searchParams.get("from"); // e.g., blog slug
+  const resultId = searchParams.get("result_id"); // specific web result to show
+  const pageNumber = parseInt(wrPage || "1");
   const [results, setResults] = useState<WebResult[]>([]);
   const [settings, setSettings] = useState<LandingSettings | null>(null);
   const [relatedSearch, setRelatedSearch] = useState<RelatedSearch | null>(null);
@@ -44,7 +71,6 @@ const WebResults = () => {
   const [loading, setLoading] = useState(true);
   const [fallbackUrls, setFallbackUrls] = useState<FallbackUrl[]>([]);
   const [userCountry, setUserCountry] = useState<string>("");
-  const fallbackIndexRef = useRef(0);
 
   useEffect(() => {
     fetchData();
@@ -56,73 +82,39 @@ const WebResults = () => {
     setUserCountry(country || "Unknown");
   };
 
-  // Check if user's country is allowed for the URL
-  const isCountryAllowed = (allowedCountries: string[] | null, userCountry: string): boolean => {
+  // Check if user's country is allowed for the *main* URL
+  const isCountryAllowed = (
+    allowedCountries: string[] | null,
+    userCountryValue: string
+  ): boolean => {
     // If no country restrictions, allow access (worldwide)
     if (!allowedCountries || allowedCountries.length === 0) return true;
-    
-    const normalizedUserCountry = userCountry.toLowerCase().trim();
-    
-    return allowedCountries.some(country => {
+
+    const normalizedUserCountry = userCountryValue.toLowerCase().trim();
+
+    return allowedCountries.some((country) => {
       const normalizedAllowed = country.toLowerCase().trim();
       // Worldwide/All means accessible to everyone
-      if (normalizedAllowed === 'all' || normalizedAllowed === 'worldwide') {
+      if (normalizedAllowed === "all" || normalizedAllowed === "worldwide") {
         return true;
       }
-      // Check for specific country match
-      return normalizedAllowed === normalizedUserCountry ||
-             normalizedUserCountry.includes(normalizedAllowed) ||
-             normalizedAllowed.includes(normalizedUserCountry);
-    });
-  };
-
-  // Check if URL has specific country match (not worldwide)
-  const hasSpecificCountryMatch = (allowedCountries: string[], userCountry: string): boolean => {
-    if (!allowedCountries || allowedCountries.length === 0) return false;
-    
-    const normalizedUserCountry = userCountry.toLowerCase().trim();
-    
-    return allowedCountries.some(country => {
-      const normalizedAllowed = country.toLowerCase().trim();
-      // Skip worldwide/all - we're looking for specific country match
-      if (normalizedAllowed === 'all' || normalizedAllowed === 'worldwide') {
-        return false;
-      }
+      // Exact match only (prevents Austria matching Australia)
       return normalizedAllowed === normalizedUserCountry;
     });
   };
 
-  // Check if URL is worldwide
-  const isWorldwide = (allowedCountries: string[]): boolean => {
-    if (!allowedCountries || allowedCountries.length === 0) return true;
-    return allowedCountries.some(c => 
-      c.toLowerCase().trim() === 'all' || c.toLowerCase().trim() === 'worldwide'
-    );
-  };
+  const redirectToNextAllowedFallback = () => {
+    const last = parseInt(localStorage.getItem(FALLBACK_CURSOR_KEY) || "-1", 10);
+    const { next, nextIndex } = getNextAllowedFallback(fallbackUrls, userCountry, last);
 
-  // Find allowed fallback URL and redirect
-  const findAndRedirectToFallbackUrl = () => {
-    // Priority 1: User's country-specific fallback
-    for (const fallback of fallbackUrls) {
-      if (hasSpecificCountryMatch(fallback.allowed_countries, userCountry)) {
-        console.log(`Fallback: Redirecting to country-specific URL: ${fallback.url} for country: ${userCountry}`);
-        window.location.href = fallback.url;
-        return;
-      }
+    if (!next) {
+      const randomToken = generateRandomToken();
+      window.location.href = `/q?t=${randomToken}&na=1`;
+      return;
     }
-    
-    // Priority 2: Worldwide fallback
-    for (const fallback of fallbackUrls) {
-      if (isWorldwide(fallback.allowed_countries)) {
-        console.log(`Fallback: Redirecting to worldwide URL: ${fallback.url}`);
-        window.location.href = fallback.url;
-        return;
-      }
-    }
-    
-    // No fallback found - redirect to /q page with "not available" state
-    const randomToken = generateRandomToken();
-    window.location.href = `/q?t=${randomToken}&na=1`;
+
+    localStorage.setItem(FALLBACK_CURSOR_KEY, String(nextIndex));
+    window.location.href = next.url;
   };
 
   useEffect(() => {
@@ -237,20 +229,18 @@ const WebResults = () => {
 
   const handleResultClick = async (result: WebResult, index: number) => {
     await trackClick(index + 1, result.id, window.location.href);
-    
+
     // STEP 1: Check if main URL is allowed for user's country
     if (isCountryAllowed(result.country_permissions, userCountry)) {
-      console.log(`Main URL allowed for country ${userCountry}: ${result.original_link}`);
       window.location.href = result.original_link;
       return;
     }
-    
-    // STEP 2: Main URL not allowed, check fallback URLs
-    console.log(`Main URL not allowed for country ${userCountry}, checking fallbacks...`);
+
+    // STEP 2: Main URL not allowed, go through fallback URLs in display_order sequence,
+    // skipping any countries the user is not allowed to access.
     if (fallbackUrls.length > 0) {
-      findAndRedirectToFallbackUrl();
+      redirectToNextAllowedFallback();
     } else {
-      // No fallback URLs available
       const randomToken = generateRandomToken();
       window.location.href = `/q?t=${randomToken}&na=1`;
     }

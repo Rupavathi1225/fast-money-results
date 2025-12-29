@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getIpInfo, generateSessionId, getDeviceType } from "@/lib/tracking";
+import { getNextAllowedFallback } from "@/lib/fallbackAccess";
 
 interface Blog {
   id: string;
@@ -143,55 +144,21 @@ const QPage = () => {
     }
   };
 
-  // Check if URL has specific country match (not worldwide)
-  const hasSpecificCountryMatch = (allowedCountries: string[], userCountry: string): boolean => {
-    if (!allowedCountries || allowedCountries.length === 0) return false;
-    
-    const normalizedUserCountry = userCountry.toLowerCase().trim();
-    
-    return allowedCountries.some(country => {
-      const normalizedAllowed = country.toLowerCase().trim();
-      // Skip worldwide/all - we're looking for specific country match
-      if (normalizedAllowed === 'all' || normalizedAllowed === 'worldwide') {
-        return false;
-      }
-      return normalizedAllowed === normalizedUserCountry ||
-             normalizedUserCountry.includes(normalizedAllowed) ||
-             normalizedAllowed.includes(normalizedUserCountry);
-    });
-  };
-
-  // Check if URL is worldwide
-  const isWorldwide = (allowedCountries: string[]): boolean => {
-    if (!allowedCountries || allowedCountries.length === 0) return true;
-    return allowedCountries.some(c => 
-      c.toLowerCase().trim() === 'all' || c.toLowerCase().trim() === 'worldwide'
-    );
-  };
-
   const startFallbackRedirects = async () => {
     const sessionId = generateSessionId();
     const deviceType = getDeviceType();
-    
-    // STEP 1: First, look for URLs that match user's SPECIFIC country (not worldwide)
-    for (const fallback of fallbackUrls) {
-      if (hasSpecificCountryMatch(fallback.allowed_countries, userCountry)) {
-        console.log(`Redirecting to country-specific URL: ${fallback.url} for country: ${userCountry}`);
-        await trackFallbackClick(sessionId, ipAddress, userCountry, deviceType, fallback.id);
-        window.location.href = fallback.url;
-        return;
-      }
+
+    const last = parseInt(localStorage.getItem("fm_fallback_cursor") || "-1", 10);
+    const { next, nextIndex } = getNextAllowedFallback(fallbackUrls, userCountry, last);
+
+    if (!next) {
+      setShowNotAvailable(true);
+      return;
     }
-    
-    // STEP 2: If no specific country match, look for worldwide URLs
-    for (const fallback of fallbackUrls) {
-      if (isWorldwide(fallback.allowed_countries)) {
-        console.log(`Redirecting to worldwide URL: ${fallback.url}`);
-        await trackFallbackClick(sessionId, ipAddress, userCountry, deviceType, fallback.id);
-        window.location.href = fallback.url;
-        return;
-      }
-    }
+
+    localStorage.setItem("fm_fallback_cursor", String(nextIndex));
+    await trackFallbackClick(sessionId, ipAddress, userCountry, deviceType, next.id);
+    window.location.href = next.url;
   };
 
   const handleBlogClick = async (blog: Blog, index: number) => {
