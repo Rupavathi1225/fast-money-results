@@ -67,11 +67,13 @@ const trackFallbackClick = async (sessionId: string, ipAddress: string, country:
 
 const QPage = () => {
   const [searchParams] = useSearchParams();
+  const notAvailable = searchParams.get('na') === '1';
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [fallbackUrls, setFallbackUrls] = useState<FallbackUrl[]>([]);
   const [loading, setLoading] = useState(true);
   const [userCountry, setUserCountry] = useState<string>("");
   const [ipAddress, setIpAddress] = useState<string>("");
+  const [showNotAvailable, setShowNotAvailable] = useState(notAvailable);
   const hasClicked = useRef(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const hasTrackedView = useRef(false);
@@ -238,6 +240,16 @@ const QPage = () => {
       {/* Main Content */}
       <main className="relative z-10 flex items-center justify-center min-h-screen px-4">
         <div className="w-full max-w-xl">
+          {showNotAvailable ? (
+            <div className="text-center">
+              <div className="bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg p-8 mb-6">
+                <h2 className="text-2xl font-bold text-white mb-2">Link Not Available</h2>
+                <p className="text-white/80">This link is not available in your region.</p>
+              </div>
+              <p className="text-white/60 text-sm">Explore other options below:</p>
+            </div>
+          ) : null}
+          
           {blogs.length === 0 ? (
             <div className="text-center text-white text-lg">
               No content available
