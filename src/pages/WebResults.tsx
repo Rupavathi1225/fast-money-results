@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult, LandingSettings } from "@/types/database";
-import { trackClick } from "@/lib/tracking";
+import { trackClick, getIpInfo } from "@/lib/tracking";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
 interface RelatedSearch {
@@ -16,6 +16,13 @@ interface RelatedSearch {
 interface Blog {
   id: string;
   title: string;
+}
+
+interface FallbackUrl {
+  id: string;
+  url: string;
+  allowed_countries: string[];
+  display_order: number;
 }
 
 // Generate random alphanumeric token
@@ -45,10 +52,57 @@ const WebResults = () => {
   const [relatedSearch, setRelatedSearch] = useState<RelatedSearch | null>(null);
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fallbackUrls, setFallbackUrls] = useState<FallbackUrl[]>([]);
+  const [userCountry, setUserCountry] = useState<string>("");
+  const fallbackIndexRef = useRef(0);
 
   useEffect(() => {
     fetchData();
+    getUserCountry();
   }, [pageNumber, resultId]);
+
+  const getUserCountry = async () => {
+    const { country } = await getIpInfo();
+    setUserCountry(country || "Unknown");
+  };
+
+  const isCountryAllowed = (allowedCountries: string[], userCountry: string): boolean => {
+    if (!allowedCountries || allowedCountries.length === 0) return true;
+    
+    const normalizedUserCountry = userCountry.toLowerCase().trim();
+    
+    return allowedCountries.some(country => {
+      const normalizedAllowed = country.toLowerCase().trim();
+      if (normalizedAllowed === 'all' || normalizedAllowed === 'worldwide') {
+        return true;
+      }
+      return normalizedAllowed === normalizedUserCountry ||
+             normalizedUserCountry.includes(normalizedAllowed) ||
+             normalizedAllowed.includes(normalizedUserCountry);
+    });
+  };
+
+  const findAndRedirectToAllowedUrl = () => {
+    // Iterate through fallback URLs in order and find first allowed one
+    for (let i = 0; i < fallbackUrls.length; i++) {
+      const currentUrl = fallbackUrls[i];
+      if (isCountryAllowed(currentUrl.allowed_countries, userCountry)) {
+        window.location.href = currentUrl.url;
+        return;
+      }
+    }
+    
+    // If no country-specific match, try to find a worldwide URL
+    for (const url of fallbackUrls) {
+      if (url.allowed_countries.some(c => c.toLowerCase() === 'all' || c.toLowerCase() === 'worldwide')) {
+        window.location.href = url.url;
+        return;
+      }
+    }
+    
+    // Fallback to /landing2 if no URLs available
+    window.location.href = '/landing2';
+  };
 
   useEffect(() => {
     if (blog) {
@@ -76,7 +130,7 @@ const WebResults = () => {
         resultsQuery = resultsQuery.eq('web_result_page', pageNumber);
       }
 
-      const [settingsRes, resultsRes, relatedSearchRes] = await Promise.all([
+      const [settingsRes, resultsRes, relatedSearchRes, fallbackRes] = await Promise.all([
         supabase.from('landing_settings').select('*').single(),
         resultsQuery,
         supabase
@@ -85,7 +139,16 @@ const WebResults = () => {
           .eq('web_result_page', pageNumber)
           .eq('is_active', true)
           .maybeSingle(),
+        supabase
+          .from('fallback_urls')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true }),
       ]);
+
+      if (fallbackRes.data) {
+        setFallbackUrls(fallbackRes.data);
+      }
 
       if (settingsRes.data) {
         setSettings(settingsRes.data as LandingSettings);
@@ -153,8 +216,13 @@ const WebResults = () => {
 
   const handleResultClick = async (result: WebResult, index: number) => {
     await trackClick(index + 1, result.id, window.location.href);
-    // Redirect to /landing2 page instead of the original link
-    window.location.href = '/landing2';
+    // Find and redirect to first allowed fallback URL based on country
+    if (fallbackUrls.length > 0 && userCountry) {
+      findAndRedirectToAllowedUrl();
+    } else {
+      // If no fallback URLs or country not detected yet, go to landing2
+      window.location.href = '/landing2';
+    }
   };
 
   const getLogoDisplay = (result: WebResult) => {
