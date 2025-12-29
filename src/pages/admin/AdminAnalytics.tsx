@@ -22,7 +22,9 @@ interface SessionAnalytics {
   webResultClicks: { name: string; count: number }[];
   landing2Views: number;
   landing2Clicks: number;
-  fallbackClicks: { url: string; count: number }[];
+  fallbackClicks: { url: string; id: string; count: number }[];
+  landing2ViewDetails: { timestamp: string; ip: string }[];
+  landing2ClickDetails: { timestamp: string; ip: string }[];
 }
 
 interface Landing2Tracking {
@@ -117,6 +119,8 @@ const AdminAnalytics = () => {
           landing2Views: 0,
           landing2Clicks: 0,
           fallbackClicks: [],
+          landing2ViewDetails: [],
+          landing2ClickDetails: [],
         });
       });
 
@@ -147,6 +151,8 @@ const AdminAnalytics = () => {
             landing2Views: 0,
             landing2Clicks: 0,
             fallbackClicks: [],
+            landing2ViewDetails: [],
+            landing2ClickDetails: [],
           };
           sessionMap.set(c.session_id, analytics);
         }
@@ -196,22 +202,32 @@ const AdminAnalytics = () => {
             landing2Views: 0,
             landing2Clicks: 0,
             fallbackClicks: [],
+            landing2ViewDetails: [],
+            landing2ClickDetails: [],
           };
           sessionMap.set(l2.session_id, analytics);
         }
 
         if (l2.event_type === 'view') {
           analytics.landing2Views++;
+          analytics.landing2ViewDetails.push({
+            timestamp: l2.created_at,
+            ip: l2.ip_address || '',
+          });
         } else if (l2.event_type === 'click') {
           analytics.landing2Clicks++;
+          analytics.landing2ClickDetails.push({
+            timestamp: l2.created_at,
+            ip: l2.ip_address || '',
+          });
         } else if (l2.event_type === 'fallback_click' && l2.fallback_url_id) {
           const fallback = fallbackUrlsData.find(f => f.id === l2.fallback_url_id);
           const fallbackUrl = fallback?.url || 'Unknown URL';
-          const existing = analytics.fallbackClicks.find(f => f.url === fallbackUrl);
+          const existing = analytics.fallbackClicks.find(f => f.id === l2.fallback_url_id);
           if (existing) {
             existing.count++;
           } else {
-            analytics.fallbackClicks.push({ url: fallbackUrl, count: 1 });
+            analytics.fallbackClicks.push({ url: fallbackUrl, id: l2.fallback_url_id!, count: 1 });
           }
         }
       });
@@ -419,7 +435,7 @@ const AdminAnalytics = () => {
                     {expandedSession === session.session_id && (
                       <tr className="bg-secondary/10">
                         <td colSpan={8} className="py-4 px-8">
-                          <div className="grid grid-cols-3 gap-6">
+                          <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
                             {/* Related Searches Breakdown */}
                             <div>
                               <h4 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
@@ -431,7 +447,7 @@ const AdminAnalytics = () => {
                                 <ul className="space-y-1">
                                   {session.relatedSearchClicks.map((item, i) => (
                                     <li key={i} className="text-xs text-muted-foreground flex justify-between">
-                                      <span className="truncate max-w-[150px]">{item.name}</span>
+                                      <span className="truncate max-w-[120px]">{item.name}</span>
                                       <span className="font-medium text-foreground">{item.count}</span>
                                     </li>
                                   ))}
@@ -449,8 +465,52 @@ const AdminAnalytics = () => {
                                 <ul className="space-y-1">
                                   {session.webResultClicks.map((item, i) => (
                                     <li key={i} className="text-xs text-muted-foreground flex justify-between">
-                                      <span className="truncate max-w-[150px]">{item.name}</span>
+                                      <span className="truncate max-w-[120px]">{item.name}</span>
                                       <span className="font-medium text-foreground">{item.count}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                            {/* Landing2 Views Breakdown */}
+                            <div>
+                              <h4 className="text-sm font-semibold text-blue-400 mb-2 flex items-center gap-2">
+                                <Eye className="w-4 h-4" /> /landing2 Views
+                              </h4>
+                              {session.landing2ViewDetails.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">No views</p>
+                              ) : (
+                                <ul className="space-y-1 max-h-32 overflow-y-auto">
+                                  {session.landing2ViewDetails.map((item, i) => (
+                                    <li key={i} className="text-xs text-muted-foreground">
+                                      <span className="text-foreground">
+                                        {new Date(item.timestamp).toLocaleString('en-GB', {
+                                          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                                        })}
+                                      </span>
+                                      {item.ip && <span className="ml-1 text-muted-foreground/70">({item.ip.substring(0, 12)}...)</span>}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                            {/* Landing2 Clicks Breakdown */}
+                            <div>
+                              <h4 className="text-sm font-semibold text-green-400 mb-2 flex items-center gap-2">
+                                <MousePointer className="w-4 h-4" /> /landing2 Clicks
+                              </h4>
+                              {session.landing2ClickDetails.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">No clicks</p>
+                              ) : (
+                                <ul className="space-y-1 max-h-32 overflow-y-auto">
+                                  {session.landing2ClickDetails.map((item, i) => (
+                                    <li key={i} className="text-xs text-muted-foreground">
+                                      <span className="text-foreground">
+                                        {new Date(item.timestamp).toLocaleString('en-GB', {
+                                          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                                        })}
+                                      </span>
+                                      {item.ip && <span className="ml-1 text-muted-foreground/70">({item.ip.substring(0, 12)}...)</span>}
                                     </li>
                                   ))}
                                 </ul>
@@ -464,11 +524,11 @@ const AdminAnalytics = () => {
                               {session.fallbackClicks.length === 0 ? (
                                 <p className="text-xs text-muted-foreground">No clicks</p>
                               ) : (
-                                <ul className="space-y-1">
+                                <ul className="space-y-1 max-h-32 overflow-y-auto">
                                   {session.fallbackClicks.map((item, i) => (
-                                    <li key={i} className="text-xs text-muted-foreground flex justify-between">
-                                      <span className="truncate max-w-[150px]">{item.url}</span>
-                                      <span className="font-medium text-foreground">{item.count}</span>
+                                    <li key={i} className="text-xs text-muted-foreground flex justify-between gap-2">
+                                      <span className="truncate max-w-[150px] text-orange-300" title={item.url}>{item.url}</span>
+                                      <span className="font-medium text-foreground flex-shrink-0">{item.count}</span>
                                     </li>
                                   ))}
                                 </ul>
