@@ -146,77 +146,71 @@ const Landing2 = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
-        <div className="animate-pulse text-emerald-500 text-xl">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-500 to-pink-400 flex items-center justify-center">
+        <div className="animate-pulse text-white text-xl">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-white">
-      {/* Header */}
-      <header className="border-b border-gray-800/50 py-4">
-        <div className="container mx-auto px-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-emerald-500">
-            OfferGrabZone
-          </h1>
-          <button className="text-gray-400 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-500 to-pink-400 relative overflow-hidden">
+      {/* Floating particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 50 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-yellow-400/60"
+            style={{
+              width: Math.random() * 8 + 3 + 'px',
+              height: Math.random() * 8 + 3 + 'px',
+              left: Math.random() * 100 + '%',
+              top: Math.random() * 100 + '%',
+              animation: `float ${Math.random() * 10 + 10}s ease-in-out infinite`,
+              animationDelay: Math.random() * 5 + 's',
+            }}
+          />
+        ))}
+      </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-16">
-        <div className="max-w-3xl mx-auto text-center">
-          {/* Title */}
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Grab Hot Deals Faster
-          </h2>
-
-          {/* Description */}
-          <p className="text-gray-400 mb-12 max-w-xl mx-auto">
-            Finding great offers is all OfferGrabZone helps users spot trending deals, hidden discounts, and limited-time steals before they disappear.
-          </p>
-
-          {/* Related Searches */}
-          <div className="mt-8">
-            <h3 className="text-sm font-medium text-gray-500 mb-6 uppercase tracking-wider">
-              Related Searches
-            </h3>
-
-            {blogs.length === 0 ? (
-              <div className="text-gray-400">
-                No content available
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3 max-w-xl mx-auto">
-                {blogs.map((blog, index) => (
-                  <button
-                    key={blog.id}
-                    onClick={() => handleBlogClick(blog, index)}
-                    className="flex items-center justify-between px-5 py-4 bg-transparent border border-emerald-500/40 hover:border-emerald-500 rounded-lg text-emerald-400 hover:text-emerald-300 transition-all duration-200 group w-full"
-                  >
-                    <span className="text-sm font-medium">{blog.title}</span>
-                    <svg className="w-4 h-4 text-emerald-500 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+      <main className="relative z-10 flex items-center justify-center min-h-screen px-4">
+        <div className="w-full max-w-xl">
+          {blogs.length === 0 ? (
+            <div className="text-center text-white text-lg">
+              No content available
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {blogs.map((blog, index) => (
+                <button
+                  key={blog.id}
+                  onClick={() => handleBlogClick(blog, index)}
+                  className="w-full px-6 py-4 bg-white/20 backdrop-blur-sm border border-white/30 rounded-lg text-white text-left hover:bg-white/30 transition-all duration-300 hover:scale-[1.02]"
+                >
+                  <span className="text-base font-medium">{blog.title}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="absolute bottom-0 w-full py-6 text-center">
-        <p className="text-gray-600 text-sm">
-          © {new Date().getFullYear()} OfferGrabZone. All rights reserved.
-        </p>
-      </footer>
+      <style>{`
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px) translateX(0px);
+          }
+          25% {
+            transform: translateY(-20px) translateX(10px);
+          }
+          50% {
+            transform: translateY(-10px) translateX(-10px);
+          }
+          75% {
+            transform: translateY(-30px) translateX(5px);
+          }
+        }
+      `}</style>
     </div>
   );
 };

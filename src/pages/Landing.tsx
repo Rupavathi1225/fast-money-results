@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { LandingSettings, RelatedSearch } from "@/types/database";
 import { trackRelatedSearchClick } from "@/lib/tracking";
-import { Search } from "lucide-react";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -60,56 +59,53 @@ const Landing = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
-        <div className="animate-pulse text-emerald-500 text-xl">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-primary text-xl">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-white">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-gray-800/50 py-4">
-        <div className="container mx-auto px-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-emerald-500">
-            {settings?.site_name || 'OfferGrabZone'}
+      <header className="border-b border-border/50 py-4">
+        <div className="container mx-auto px-4">
+          <h1 className="text-2xl font-display font-bold text-primary">
+            {settings?.site_name || 'FastMoney'}
           </h1>
-          <button className="text-gray-400 hover:text-white transition-colors">
-            <Search className="w-5 h-5" />
-          </button>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-16">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center">
           {/* Title */}
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 animate-fade-in">
-            {settings?.title || 'Grab Hot Deals Faster'}
+          <h2 className="text-4xl md:text-5xl font-display font-bold text-foreground mb-6 animate-fade-in">
+            {settings?.title || 'Fast Money Solutions'}
           </h2>
 
           {/* Description */}
-          <p className="text-gray-400 mb-12 max-w-xl mx-auto animate-slide-up">
-            {settings?.description || 'Finding great offers is all OfferGrabZone helps users spot trending deals, hidden discounts, and limited-time steals before they disappear.'}
+          <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto animate-slide-up">
+            {settings?.description || 'Discover the best platforms for earning money online.'}
           </p>
 
           {/* Related Searches */}
-          <div className="mt-12">
-            <h3 className="text-sm font-medium text-gray-500 mb-6 uppercase tracking-wider">
+          <div className="mt-16">
+            <h3 className="text-xl font-display font-semibold text-foreground mb-8">
               Related Searches
             </h3>
 
-            <div className="flex flex-col gap-3 max-w-xl mx-auto">
+            <div className="flex flex-col gap-2 max-w-lg mx-auto">
               {searches.map((search, index) => (
                 <button
                   key={search.id}
                   onClick={() => handleSearchClick(search)}
-                  className="flex items-center justify-between px-5 py-4 bg-transparent border border-emerald-500/40 hover:border-emerald-500 rounded-lg text-emerald-400 hover:text-emerald-300 transition-all duration-200 group w-full"
+                  className="flex items-center justify-between px-4 py-3 border border-border/60 hover:border-primary/50 rounded-md text-primary hover:text-primary/80 transition-all duration-200 group w-full"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <span className="text-sm font-medium">{search.search_text}</span>
-                  <svg className="w-4 h-4 text-emerald-500 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  <span className="text-sm">{search.search_text}</span>
+                  <svg className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
               ))}
@@ -118,12 +114,6 @@ const Landing = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="absolute bottom-0 w-full py-6 text-center">
-        <p className="text-gray-600 text-sm">
-          © {new Date().getFullYear()} {settings?.site_name || 'OfferGrabZone'}. All rights reserved.
-        </p>
-      </footer>
     </div>
   );
 };
