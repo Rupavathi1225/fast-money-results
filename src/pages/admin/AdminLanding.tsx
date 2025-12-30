@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Save } from "lucide-react";
 
@@ -46,6 +47,7 @@ const AdminLanding = () => {
           site_name: settings.site_name,
           title: settings.title,
           description: settings.description,
+          redirect_enabled: settings.redirect_enabled,
           updated_at: new Date().toISOString(),
         })
         .eq('id', settings.id);
@@ -102,7 +104,22 @@ const AdminLanding = () => {
             />
           </div>
 
-          <Button 
+          <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/50">
+            <div>
+              <Label htmlFor="redirect-toggle" className="text-base font-medium">Auto-Redirect</Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                Enable automatic 5-second redirect to fallback URLs on landing pages.
+                When OFF, no redirect happens (SEO-safe for Google crawling).
+              </p>
+            </div>
+            <Switch
+              id="redirect-toggle"
+              checked={settings?.redirect_enabled || false}
+              onCheckedChange={(checked) => setSettings(prev => prev ? { ...prev, redirect_enabled: checked } : null)}
+            />
+          </div>
+
+          <Button
             onClick={handleSave} 
             disabled={saving}
             className="w-full"

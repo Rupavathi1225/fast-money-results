@@ -3,6 +3,7 @@ export interface LandingSettings {
   site_name: string;
   title: string;
   description: string;
+  redirect_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
