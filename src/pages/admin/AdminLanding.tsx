@@ -115,7 +115,16 @@ const AdminLanding = () => {
             <Switch
               id="redirect-toggle"
               checked={settings?.redirect_enabled || false}
-              onCheckedChange={(checked) => setSettings(prev => prev ? { ...prev, redirect_enabled: checked } : null)}
+              onCheckedChange={async (checked) => {
+                setSettings(prev => prev ? { ...prev, redirect_enabled: checked } : null);
+                // Auto-save toggle immediately
+                if (settings) {
+                  await supabase
+                    .from('landing_settings')
+                    .update({ redirect_enabled: checked, updated_at: new Date().toISOString() })
+                    .eq('id', settings.id);
+                }
+              }}
             />
           </div>
 
