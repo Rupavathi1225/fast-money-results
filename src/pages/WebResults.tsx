@@ -41,7 +41,7 @@ const WebResults = () => {
   const [relatedSearch, setRelatedSearch] = useState<RelatedSearch | null>(null);
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
-  const [localRedirectToggle, setLocalRedirectToggle] = useState(true); // Default ON
+  const [redirectEnabled, setRedirectEnabled] = useState(false);
   const [fallbackUrls, setFallbackUrls] = useState<FallbackUrl[]>([]);
   const [userCountry, setUserCountry] = useState<string>("");
   const [ipAddress, setIpAddress] = useState<string>("");
@@ -97,6 +97,7 @@ const WebResults = () => {
 
       if (settingsRes.data) {
         setSettings(settingsRes.data as LandingSettings);
+        setRedirectEnabled(settingsRes.data.redirect_enabled || false);
       }
       if (resultsRes.data) {
         setResults(resultsRes.data as WebResult[]);
@@ -171,13 +172,13 @@ const WebResults = () => {
   const handleResultClick = async (result: WebResult, index: number) => {
     await trackClick(index + 1, result.id, window.location.href);
 
-    // If redirect toggle is OFF, stay on same site (go to original link directly)
-    if (!localRedirectToggle) {
+    // If redirect is OFF in admin, stay on same site (go to original link directly)
+    if (!redirectEnabled) {
       window.location.href = result.original_link;
       return;
     }
 
-    // If redirect toggle is ON, redirect to /q page for fallback sequence
+    // If redirect is ON in admin, redirect to /q page for fallback sequence
     const randomToken = generateRandomToken();
     window.location.href = `/q?t=${randomToken}`;
   };
@@ -232,31 +233,13 @@ const WebResults = () => {
           <Link to="/landing" className="text-2xl font-display font-bold text-primary">
             {settings?.site_name || 'FastMoney'}
           </Link>
-          <div className="flex items-center gap-4">
-            {/* Redirect Toggle */}
-            <div className="flex items-center gap-2 bg-secondary/30 rounded-full px-3 py-1.5">
-              <span className="text-muted-foreground text-sm">Auto Redirect</span>
-              <button
-                onClick={() => setLocalRedirectToggle(!localRedirectToggle)}
-                className={`relative w-10 h-5 rounded-full transition-colors duration-300 ${
-                  localRedirectToggle ? 'bg-green-500' : 'bg-gray-500'
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${
-                    localRedirectToggle ? 'left-5' : 'left-0.5'
-                  }`}
-                />
-              </button>
-            </div>
-            <Link 
-              to={fromBlog ? `/blog/${fromBlog}` : "/landing"} 
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              {fromBlog ? 'Back to Blog' : 'Back to Search'}
-            </Link>
-          </div>
+          <Link 
+            to={fromBlog ? `/blog/${fromBlog}` : "/landing"} 
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            {fromBlog ? 'Back to Blog' : 'Back to Search'}
+          </Link>
         </div>
       </header>
 

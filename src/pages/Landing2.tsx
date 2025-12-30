@@ -20,8 +20,7 @@ const Landing2 = () => {
   const [fallbackUrls, setFallbackUrls] = useState<FallbackUrl[]>([]);
   const [loading, setLoading] = useState(true);
   const [userCountry, setUserCountry] = useState<string>("");
-  const [adminRedirectEnabled, setAdminRedirectEnabled] = useState(false);
-  const [localRedirectToggle, setLocalRedirectToggle] = useState(true); // Default ON
+  const [redirectEnabled, setRedirectEnabled] = useState(false);
   const hasClicked = useRef(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fallbackIndexRef = useRef(0);
@@ -38,8 +37,8 @@ const Landing2 = () => {
   }, []);
 
   useEffect(() => {
-    // Only start auto-redirect if BOTH admin setting AND local toggle are enabled
-    if (!loading && fallbackUrls.length > 0 && userCountry && adminRedirectEnabled && localRedirectToggle) {
+    // Only start auto-redirect if admin setting is enabled
+    if (!loading && fallbackUrls.length > 0 && userCountry && redirectEnabled) {
       timerRef.current = setTimeout(() => {
         if (!hasClicked.current) {
           startFallbackRedirects();
@@ -51,7 +50,7 @@ const Landing2 = () => {
         clearTimeout(timerRef.current);
       }
     };
-  }, [loading, fallbackUrls, userCountry, adminRedirectEnabled, localRedirectToggle]);
+  }, [loading, fallbackUrls, userCountry, redirectEnabled]);
 
   const getUserCountry = async () => {
     const { country } = await getIpInfo();
@@ -86,7 +85,7 @@ const Landing2 = () => {
         setFallbackUrls(fallbackRes.data);
       }
       if (settingsRes.data) {
-        setAdminRedirectEnabled(settingsRes.data.redirect_enabled || false);
+        setRedirectEnabled(settingsRes.data.redirect_enabled || false);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -175,23 +174,6 @@ const Landing2 = () => {
             }}
           />
         ))}
-      </div>
-
-      {/* Redirect Toggle */}
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
-        <span className="text-white/80 text-sm">Auto Redirect</span>
-        <button
-          onClick={() => setLocalRedirectToggle(!localRedirectToggle)}
-          className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${
-            localRedirectToggle ? 'bg-green-500' : 'bg-gray-500'
-          }`}
-        >
-          <span
-            className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${
-              localRedirectToggle ? 'left-7' : 'left-1'
-            }`}
-          />
-        </button>
       </div>
 
       {/* Main Content */}
