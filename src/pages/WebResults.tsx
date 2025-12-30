@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult, LandingSettings } from "@/types/database";
-import { trackClick, generateRandomToken } from "@/lib/tracking";
+import { trackClick, generateRandomToken, getIpInfo, generateSessionId, getDeviceType } from "@/lib/tracking";
+import { getNextAllowedFallback } from "@/lib/fallbackAccess";
 import { ArrowLeft, ExternalLink } from "lucide-react";
-
 // Generate random token for URL
 const generateRandomWord = () => {
   const words = ["quick", "fast", "smart", "easy", "safe", "best", "top", "new", "pro", "max"];
@@ -23,8 +23,12 @@ interface Blog {
   id: string;
   title: string;
 }
-
-
+interface FallbackUrl {
+  id: string;
+  url: string;
+  allowed_countries: string[];
+  display_order: number;
+}
 
 const WebResults = () => {
   const { wrPage } = useParams();
@@ -37,9 +41,15 @@ const WebResults = () => {
   const [relatedSearch, setRelatedSearch] = useState<RelatedSearch | null>(null);
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
+  const [localRedirectToggle, setLocalRedirectToggle] = useState(true); // Default ON
+  const [fallbackUrls, setFallbackUrls] = useState<FallbackUrl[]>([]);
+  const [userCountry, setUserCountry] = useState<string>("");
+  const [ipAddress, setIpAddress] = useState<string>("");
+  const hasTrackedView = useRef(false);
 
   useEffect(() => {
     fetchData();
+    getUserCountry();
   }, [pageNumber, resultId]);
 
 
@@ -69,7 +79,7 @@ const WebResults = () => {
         resultsQuery = resultsQuery.eq('web_result_page', pageNumber);
       }
 
-      const [settingsRes, resultsRes, relatedSearchRes] = await Promise.all([
+      const [settingsRes, resultsRes, relatedSearchRes, fallbackRes] = await Promise.all([
         supabase.from('landing_settings').select('*').single(),
         resultsQuery,
         supabase
@@ -78,6 +88,11 @@ const WebResults = () => {
           .eq('web_result_page', pageNumber)
           .eq('is_active', true)
           .maybeSingle(),
+        supabase
+          .from('fallback_urls')
+          .select('*')
+          .eq('is_active', true)
+          .order('display_order', { ascending: true }),
       ]);
 
       if (settingsRes.data) {
@@ -129,11 +144,20 @@ const WebResults = () => {
           }
         }
       }
+      if (fallbackRes.data) {
+        setFallbackUrls(fallbackRes.data);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const getUserCountry = async () => {
+    const { country, ipAddress: ip } = await getIpInfo();
+    setUserCountry(country || "Unknown");
+    setIpAddress(ip || "");
   };
 
   const generateMaskedLink = (result: WebResult, index: number) => {
@@ -147,7 +171,13 @@ const WebResults = () => {
   const handleResultClick = async (result: WebResult, index: number) => {
     await trackClick(index + 1, result.id, window.location.href);
 
-    // Redirect to /landing2 (QPage) which handles 5-second timer and fallback URL sequence
+    // If redirect toggle is OFF, stay on same site (go to original link directly)
+    if (!localRedirectToggle) {
+      window.location.href = result.original_link;
+      return;
+    }
+
+    // If redirect toggle is ON, redirect to /q page for fallback sequence
     const randomToken = generateRandomToken();
     window.location.href = `/q?t=${randomToken}`;
   };
@@ -202,13 +232,31 @@ const WebResults = () => {
           <Link to="/landing" className="text-2xl font-display font-bold text-primary">
             {settings?.site_name || 'FastMoney'}
           </Link>
-          <Link 
-            to={fromBlog ? `/blog/${fromBlog}` : "/landing"} 
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {fromBlog ? 'Back to Blog' : 'Back to Search'}
-          </Link>
+          <div className="flex items-center gap-4">
+            {/* Redirect Toggle */}
+            <div className="flex items-center gap-2 bg-secondary/30 rounded-full px-3 py-1.5">
+              <span className="text-muted-foreground text-sm">Auto Redirect</span>
+              <button
+                onClick={() => setLocalRedirectToggle(!localRedirectToggle)}
+                className={`relative w-10 h-5 rounded-full transition-colors duration-300 ${
+                  localRedirectToggle ? 'bg-green-500' : 'bg-gray-500'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${
+                    localRedirectToggle ? 'left-5' : 'left-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+            <Link 
+              to={fromBlog ? `/blog/${fromBlog}` : "/landing"} 
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {fromBlog ? 'Back to Blog' : 'Back to Search'}
+            </Link>
+          </div>
         </div>
       </header>
 
