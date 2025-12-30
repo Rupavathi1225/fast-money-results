@@ -139,6 +139,7 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          redirect_enabled: boolean
           site_name: string
           title: string
           updated_at: string
@@ -147,6 +148,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          redirect_enabled?: boolean
           site_name?: string
           title?: string
           updated_at?: string
@@ -155,6 +157,7 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          redirect_enabled?: boolean
           site_name?: string
           title?: string
           updated_at?: string

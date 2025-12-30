@@ -20,6 +20,7 @@ const Landing2 = () => {
   const [fallbackUrls, setFallbackUrls] = useState<FallbackUrl[]>([]);
   const [loading, setLoading] = useState(true);
   const [userCountry, setUserCountry] = useState<string>("");
+  const [redirectEnabled, setRedirectEnabled] = useState(false);
   const hasClicked = useRef(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fallbackIndexRef = useRef(0);
@@ -36,7 +37,8 @@ const Landing2 = () => {
   }, []);
 
   useEffect(() => {
-    if (!loading && fallbackUrls.length > 0 && userCountry) {
+    // Only start auto-redirect if redirect is enabled in admin settings
+    if (!loading && fallbackUrls.length > 0 && userCountry && redirectEnabled) {
       // Start 5-second timer for auto-redirect
       timerRef.current = setTimeout(() => {
         if (!hasClicked.current) {
@@ -44,7 +46,7 @@ const Landing2 = () => {
         }
       }, 5000);
     }
-  }, [loading, fallbackUrls, userCountry]);
+  }, [loading, fallbackUrls, userCountry, redirectEnabled]);
 
   const getUserCountry = async () => {
     const { country } = await getIpInfo();
@@ -54,7 +56,7 @@ const Landing2 = () => {
 
   const fetchData = async () => {
     try {
-      const [blogsRes, fallbackRes] = await Promise.all([
+      const [blogsRes, fallbackRes, settingsRes] = await Promise.all([
         supabase
           .from('blogs')
           .select('id, title, slug')
@@ -66,6 +68,10 @@ const Landing2 = () => {
           .select('*')
           .eq('is_active', true)
           .order('display_order', { ascending: true }),
+        supabase
+          .from('landing_settings')
+          .select('redirect_enabled')
+          .single(),
       ]);
 
       if (blogsRes.data) {
@@ -73,6 +79,9 @@ const Landing2 = () => {
       }
       if (fallbackRes.data) {
         setFallbackUrls(fallbackRes.data);
+      }
+      if (settingsRes.data) {
+        setRedirectEnabled(settingsRes.data.redirect_enabled || false);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
