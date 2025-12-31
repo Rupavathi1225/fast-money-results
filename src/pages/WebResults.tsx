@@ -172,13 +172,8 @@ const WebResults = () => {
   const handleResultClick = async (result: WebResult, index: number) => {
     await trackClick(index + 1, result.id, window.location.href);
 
-    // If redirect is OFF in admin, stay on same site (go to original link directly)
-    if (!redirectEnabled) {
-      window.location.href = result.original_link;
-      return;
-    }
-
-    // If redirect is ON in admin, redirect to /q page for fallback sequence
+    // Always redirect to /q page (landing2) - the auto-redirect setting only controls
+    // whether the 5-second timer triggers on that page
     const randomToken = generateRandomToken();
     window.location.href = `/q?t=${randomToken}`;
   };
