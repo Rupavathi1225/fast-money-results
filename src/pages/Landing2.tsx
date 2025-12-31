@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getIpInfo } from "@/lib/tracking";
+import { getNextAllowedFallback } from "@/lib/fallbackAccess";
 
 interface Blog {
   id: string;
@@ -15,6 +16,8 @@ interface FallbackUrl {
   display_order: number;
 }
 
+const FALLBACK_INDEX_KEY = "landing2_fallback_index";
+
 const Landing2 = () => {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [fallbackUrls, setFallbackUrls] = useState<FallbackUrl[]>([]);
@@ -23,7 +26,6 @@ const Landing2 = () => {
   const [redirectEnabled, setRedirectEnabled] = useState(false);
   const hasClicked = useRef(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const fallbackIndexRef = useRef(0);
 
   useEffect(() => {
     fetchData();
@@ -41,7 +43,7 @@ const Landing2 = () => {
     if (!loading && fallbackUrls.length > 0 && userCountry && redirectEnabled) {
       timerRef.current = setTimeout(() => {
         if (!hasClicked.current) {
-          startFallbackRedirects();
+          startFallbackRedirect();
         }
       }, 5000);
     }
@@ -54,7 +56,6 @@ const Landing2 = () => {
 
   const getUserCountry = async () => {
     const { country } = await getIpInfo();
-    // Get country code from country name or use the returned value
     setUserCountry(country || "Unknown");
   };
 
@@ -94,49 +95,21 @@ const Landing2 = () => {
     }
   };
 
-  const isCountryAllowed = (allowedCountries: string[], userCountry: string): boolean => {
-    if (!allowedCountries || allowedCountries.length === 0) return true;
+  const startFallbackRedirect = () => {
+    // Get persisted index from localStorage
+    const lastIndex = parseInt(localStorage.getItem(FALLBACK_INDEX_KEY) || "-1", 10);
     
-    const normalizedUserCountry = userCountry.toLowerCase().trim();
+    // Use the shared utility to get next allowed fallback
+    const { next, nextIndex } = getNextAllowedFallback(fallbackUrls, userCountry, lastIndex);
     
-    return allowedCountries.some(country => {
-      const normalizedAllowed = country.toLowerCase().trim();
-      // Check for ALL/worldwide first
-      if (normalizedAllowed === 'all' || normalizedAllowed === 'worldwide') {
-        return true;
-      }
-      // Check for exact or partial country match
-      return normalizedAllowed === normalizedUserCountry ||
-             normalizedUserCountry.includes(normalizedAllowed) ||
-             normalizedAllowed.includes(normalizedUserCountry);
-    });
-  };
-
-  const startFallbackRedirects = () => {
-    const tryNextUrl = () => {
-      while (fallbackIndexRef.current < fallbackUrls.length) {
-        const currentUrl = fallbackUrls[fallbackIndexRef.current];
-        fallbackIndexRef.current++;
-
-        if (isCountryAllowed(currentUrl.allowed_countries, userCountry)) {
-          // Open this URL
-          window.location.href = currentUrl.url;
-          return;
-        }
-        // Country not allowed, try next URL
-      }
-      
-      // If all URLs exhausted, reset and try again with worldwide only
-      fallbackIndexRef.current = 0;
-      for (const url of fallbackUrls) {
-        if (url.allowed_countries.some(c => c.toLowerCase() === 'worldwide')) {
-          window.location.href = url.url;
-          return;
-        }
-      }
-    };
-
-    tryNextUrl();
+    if (next) {
+      // Save the new index for next time
+      localStorage.setItem(FALLBACK_INDEX_KEY, nextIndex.toString());
+      window.location.href = next.url;
+    } else {
+      // No fallback found for this country - show message or stay on page
+      console.log("No fallback URL available for country:", userCountry);
+    }
   };
 
   const handleBlogClick = (blog: Blog, index: number) => {
