@@ -38,7 +38,7 @@ const App = () => (
           <Route path="/wr/:wrPage" element={<WebResults />} />
           <Route path="/link/:linkId" element={<LinkRedirect />} />
           <Route path="/prelander" element={<Prelander />} />
-          <Route path="/blog/:slug" element={<BlogPage />} />
+          <Route path="/blog/:pageId" element={<BlogPage />} />
           <Route path="/p/:pageId" element={<BlogRedirect />} />
           <Route path="/admin" element={<AdminLanding />} />
           <Route path="/admin/categories" element={<AdminCategories />} />
