@@ -5,7 +5,7 @@ import { getIpInfo } from "@/lib/tracking";
 interface Blog {
   id: string;
   title: string;
-  slug: string;
+  page_id: number | null;
 }
 
 interface FallbackUrl {
@@ -63,7 +63,7 @@ const Landing2 = () => {
       const [blogsRes, fallbackRes, settingsRes] = await Promise.all([
         supabase
           .from('blogs')
-          .select('id, title, slug')
+          .select('id, title, page_id')
           .eq('status', 'published')
           .order('created_at', { ascending: true })
           .limit(5),
@@ -144,8 +144,8 @@ const Landing2 = () => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
     }
-    // Navigate to the blog page
-    window.location.href = `/blog/${blog.slug}`;
+    // Navigate to the blog page using page_id
+    window.location.href = `/blog/${blog.page_id}`;
   };
 
   if (loading) {
