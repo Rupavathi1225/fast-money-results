@@ -45,6 +45,7 @@ interface Blog {
   status: string;
   created_at: string;
   updated_at: string;
+  page_id: number | null;
 }
 
 const CATEGORIES = ["Finance", "Technology", "Lifestyle", "Business", "Health", "Education"];
@@ -288,14 +289,20 @@ const AdminBlogs = () => {
       .replace(/(^-|-$)/g, "");
   };
 
-  const copyLink = (blogId: string, index: number) => {
-    const url = `${window.location.origin}/p/${index + 1}`;
+  const copyLink = (pageId: number | null) => {
+    if (!pageId) {
+      toast({ title: "Page ID not available", variant: "destructive" });
+      return;
+    }
+    const url = `${window.location.origin}/blog/${pageId}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Link copied to clipboard" });
   };
 
-  const openBlog = (slug: string) => {
-    window.open(`/blog/${slug}`, "_blank");
+  const openBlog = (pageId: number | null) => {
+    if (pageId) {
+      window.open(`/blog/${pageId}`, "_blank");
+    }
   };
 
   const toggleSelection = (id: string) => {
@@ -348,9 +355,8 @@ const AdminBlogs = () => {
   const handleCopy = () => {
     if (!blogs) return;
     const selectedData = blogs.filter(b => selectedIds.has(b.id));
-    const text = selectedData.map((b, idx) => {
-      const blogIndex = blogs.findIndex(blog => blog.id === b.id);
-      return `${b.title} - ${window.location.origin}/p/${blogIndex + 1}`;
+    const text = selectedData.map((b) => {
+      return `${b.title} - ${window.location.origin}/blog/${b.page_id}`;
     }).join('\n');
     navigator.clipboard.writeText(text);
     toast({ title: "Copied to clipboard" });
@@ -677,7 +683,7 @@ const AdminBlogs = () => {
                   <TableRow>
                     <TableHead className="w-12"></TableHead>
                     <TableHead>Title</TableHead>
-                    <TableHead>Slug</TableHead>
+                    <TableHead>Page ID</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Published Date</TableHead>
                     <TableHead>Status</TableHead>
@@ -698,7 +704,7 @@ const AdminBlogs = () => {
                         />
                       </TableCell>
                       <TableCell className="font-medium">{blog.title}</TableCell>
-                      <TableCell>{blog.slug}</TableCell>
+                      <TableCell>{blog.page_id || "-"}</TableCell>
                       <TableCell>{blog.category || "-"}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {new Date(blog.created_at).toLocaleDateString('en-US', {
@@ -723,10 +729,7 @@ const AdminBlogs = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                              const blogIndex = blogs?.findIndex(b => b.id === blog.id) ?? 0;
-                              copyLink(blog.id, blogIndex);
-                            }}
+                            onClick={() => copyLink(blog.page_id)}
                             title="Copy Link"
                           >
                             <Copy className="w-4 h-4" />
@@ -734,7 +737,7 @@ const AdminBlogs = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => openBlog(blog.slug)}
+                            onClick={() => openBlog(blog.page_id)}
                             title="Open Blog"
                           >
                             <ExternalLink className="w-4 h-4" />

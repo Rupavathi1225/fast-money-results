@@ -13,6 +13,7 @@ interface Blog {
   featured_image_url: string | null;
   status: string;
   created_at: string;
+  page_id: number | null;
 }
 
 interface RelatedSearch {
@@ -25,15 +26,15 @@ interface RelatedSearch {
 }
 
 const BlogPage = () => {
-  const { slug } = useParams<{ slug: string }>();
+  const { pageId } = useParams<{ pageId: string }>();
 
   const { data: blog, isLoading, error } = useQuery({
-    queryKey: ["blog", slug],
+    queryKey: ["blog", pageId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("blogs")
         .select("*")
-        .eq("slug", slug)
+        .eq("page_id", parseInt(pageId || "0", 10))
         .eq("status", "published")
         .maybeSingle();
       if (error) throw error;
@@ -127,7 +128,7 @@ const BlogPage = () => {
               {relatedSearches.map((search) => (
                 <Link
                   key={search.id}
-                  to={`/wr/${search.web_result_page}?from=${slug}`}
+                  to={`/wr/${search.web_result_page}?from=${pageId}`}
                   className="flex items-center justify-between px-4 py-3 border border-border/60 hover:border-primary/50 rounded-md text-primary hover:text-primary/80 transition-all duration-200 group"
                 >
                   <span className="text-sm">{search.title}</span>
