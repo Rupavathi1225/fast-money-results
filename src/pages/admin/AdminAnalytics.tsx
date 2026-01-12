@@ -25,6 +25,7 @@ interface SessionAnalytics {
   fallbackClicks: { url: string; id: string; count: number }[];
   landing2ViewDetails: { timestamp: string; ip: string }[];
   landing2ClickDetails: { timestamp: string; ip: string }[];
+  lastActive: string;
 }
 
 interface Landing2Tracking {
@@ -121,6 +122,7 @@ const AdminAnalytics = () => {
           fallbackClicks: [],
           landing2ViewDetails: [],
           landing2ClickDetails: [],
+          lastActive: s.last_activity || s.started_at || '',
         });
       });
 
@@ -153,6 +155,7 @@ const AdminAnalytics = () => {
             fallbackClicks: [],
             landing2ViewDetails: [],
             landing2ClickDetails: [],
+            lastActive: c.clicked_at || '',
           };
           sessionMap.set(c.session_id, analytics);
         }
@@ -204,6 +207,7 @@ const AdminAnalytics = () => {
             fallbackClicks: [],
             landing2ViewDetails: [],
             landing2ClickDetails: [],
+            lastActive: l2.created_at || '',
           };
           sessionMap.set(l2.session_id, analytics);
         }
@@ -372,6 +376,7 @@ const AdminAnalytics = () => {
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">IP Address</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">Country</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">Device</th>
+                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Last Active</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">Clicks</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">/landing2 Views</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">/landing2 Clicks</th>
@@ -405,6 +410,9 @@ const AdminAnalytics = () => {
                           {session.device_type}
                         </span>
                       </td>
+                      <td className="py-3 px-4 text-muted-foreground text-xs">
+                        {session.lastActive ? new Date(session.lastActive).toLocaleString() : '-'}
+                      </td>
                       <td className="py-3 px-4">
                         <span className="text-foreground font-medium">{session.totalClicks}</span>
                         <span className="text-muted-foreground text-xs ml-1">
@@ -434,7 +442,7 @@ const AdminAnalytics = () => {
                     {/* Expanded breakdown */}
                     {expandedSession === session.session_id && (
                       <tr className="bg-secondary/10">
-                        <td colSpan={8} className="py-4 px-8">
+                        <td colSpan={9} className="py-4 px-8">
                           <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
                             {/* Related Searches Breakdown */}
                             <div>
