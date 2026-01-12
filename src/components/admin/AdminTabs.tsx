@@ -6,42 +6,42 @@ const AdminTabs = () => {
   const location = useLocation();
 
   const getActiveTab = () => {
-    if (location.pathname === '/admin' || location.pathname === '/admin/') return 'landing';
-    if (location.pathname.includes('/admin/categories')) return 'categories';
-    if (location.pathname.includes('/admin/webresults')) return 'webresults';
-    if (location.pathname.includes('/admin/prelander')) return 'prelander';
-    if (location.pathname.includes('/admin/blogs')) return 'blogs';
-    if (location.pathname.includes('/admin/analytics')) return 'analytics';
-    if (location.pathname.includes('/admin/bulk-web-result-editor')) return 'bulk';
-    if (location.pathname.includes('/admin/fallback-urls')) return 'fallback';
+    if (location.pathname === '/adm' || location.pathname === '/adm/') return 'landing';
+    if (location.pathname.includes('/adm/categories')) return 'categories';
+    if (location.pathname.includes('/adm/webresults')) return 'webresults';
+    if (location.pathname.includes('/adm/prelander')) return 'prelander';
+    if (location.pathname.includes('/adm/blogs')) return 'blogs';
+    if (location.pathname.includes('/adm/analytics')) return 'analytics';
+    if (location.pathname.includes('/adm/bulk-web-result-editor')) return 'bulk';
+    if (location.pathname.includes('/adm/fallback-urls')) return 'fallback';
     return 'landing';
   };
 
   const handleTabChange = (value: string) => {
     switch (value) {
       case 'landing':
-        navigate('/admin');
+        navigate('/adm');
         break;
       case 'categories':
-        navigate('/admin/categories');
+        navigate('/adm/categories');
         break;
       case 'webresults':
-        navigate('/admin/webresults');
+        navigate('/adm/webresults');
         break;
       case 'prelander':
-        navigate('/admin/prelander');
+        navigate('/adm/prelander');
         break;
       case 'blogs':
-        navigate('/admin/blogs');
+        navigate('/adm/blogs');
         break;
       case 'analytics':
-        navigate('/admin/analytics');
+        navigate('/adm/analytics');
         break;
       case 'bulk':
-        navigate('/admin/bulk-web-result-editor');
+        navigate('/adm/bulk-web-result-editor');
         break;
       case 'fallback':
-        navigate('/admin/fallback-urls');
+        navigate('/adm/fallback-urls');
         break;
     }
   };

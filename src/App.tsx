@@ -40,14 +40,14 @@ const App = () => (
           <Route path="/prelander" element={<Prelander />} />
           <Route path="/blog/:pageId" element={<BlogPage />} />
           <Route path="/p/:pageId" element={<BlogRedirect />} />
-          <Route path="/admin" element={<AdminLanding />} />
-          <Route path="/admin/categories" element={<AdminCategories />} />
-          <Route path="/admin/webresults" element={<AdminWebResults />} />
-          <Route path="/admin/prelander" element={<AdminPrelander />} />
-          <Route path="/admin/blogs" element={<AdminBlogs />} />
-          <Route path="/admin/analytics" element={<AdminAnalytics />} />
-          <Route path="/admin/bulk-web-result-editor" element={<AdminBulkEditor />} />
-          <Route path="/admin/fallback-urls" element={<AdminFallbackUrls />} />
+          <Route path="/adm" element={<AdminLanding />} />
+          <Route path="/adm/categories" element={<AdminCategories />} />
+          <Route path="/adm/webresults" element={<AdminWebResults />} />
+          <Route path="/adm/prelander" element={<AdminPrelander />} />
+          <Route path="/adm/blogs" element={<AdminBlogs />} />
+          <Route path="/adm/analytics" element={<AdminAnalytics />} />
+          <Route path="/adm/bulk-web-result-editor" element={<AdminBulkEditor />} />
+          <Route path="/adm/fallback-urls" element={<AdminFallbackUrls />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
