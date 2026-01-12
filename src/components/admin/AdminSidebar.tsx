@@ -10,11 +10,11 @@ import {
 
 const AdminSidebar = () => {
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Landing Page', path: '/admin' },
-    { icon: Search, label: 'Categories', path: '/admin/categories' },
-    { icon: Globe, label: 'Web Results', path: '/admin/webresults' },
-    { icon: FileText, label: 'Prelander', path: '/admin/prelander' },
-    { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
+    { icon: LayoutDashboard, label: 'Landing Page', path: '/adm' },
+    { icon: Search, label: 'Categories', path: '/adm/categories' },
+    { icon: Globe, label: 'Web Results', path: '/adm/webresults' },
+    { icon: FileText, label: 'Prelander', path: '/adm/prelander' },
+    { icon: BarChart3, label: 'Analytics', path: '/adm/analytics' },
   ];
 
   return (
@@ -30,7 +30,7 @@ const AdminSidebar = () => {
           <NavLink
             key={item.path}
             to={item.path}
-            end={item.path === '/admin'}
+            end={item.path === '/adm'}
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
             activeClassName="bg-sidebar-accent text-primary"
           >
