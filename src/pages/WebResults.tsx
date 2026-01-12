@@ -279,22 +279,6 @@ const WebResults = () => {
             </div>
           )}
 
-          {/* Blog Name and Related Search Title - only for non-single result view */}
-          {!resultId && (blog || relatedSearch) && (
-            <div className="mb-6">
-              {blog && (
-                <p className="text-sm text-primary mb-1">Blog: {blog.title}</p>
-              )}
-              {relatedSearch && (
-                <>
-                  <h1 className="text-2xl font-bold text-foreground">{relatedSearch.title}</h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Showing results for: {relatedSearch.search_text}
-                  </p>
-                </>
-              )}
-            </div>
-          )}
           {results.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">No results found for this page.</p>
