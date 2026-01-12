@@ -376,11 +376,11 @@ const AdminAnalytics = () => {
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">IP Address</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">Country</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">Device</th>
-                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Last Active</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">Clicks</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">/landing2 Views</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">/landing2 Clicks</th>
                   <th className="text-left py-3 px-4 text-muted-foreground font-medium">Fallback Clicks</th>
+                  <th className="text-left py-3 px-4 text-muted-foreground font-medium">Last Active</th>
                 </tr>
               </thead>
               <tbody>
@@ -410,9 +410,6 @@ const AdminAnalytics = () => {
                           {session.device_type}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-muted-foreground text-xs">
-                        {session.lastActive ? new Date(session.lastActive).toLocaleString() : '-'}
-                      </td>
                       <td className="py-3 px-4">
                         <span className="text-foreground font-medium">{session.totalClicks}</span>
                         <span className="text-muted-foreground text-xs ml-1">
@@ -437,6 +434,9 @@ const AdminAnalytics = () => {
                             <ChevronDown className="w-3 h-3" />
                           }
                         </button>
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground text-xs">
+                        {session.lastActive ? new Date(session.lastActive).toLocaleString() : '-'}
                       </td>
                     </tr>
                     {/* Expanded breakdown */}
