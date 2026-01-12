@@ -355,13 +355,15 @@ const AdminBlogs = () => {
   const handleCopy = () => {
     if (!blogs) return;
     const selectedData = blogs.filter(b => selectedIds.has(b.id));
-    // Include Title, Slug, and URL with page_id
-    const text = selectedData.map((b) => {
-      const url = b.page_id ? `${window.location.origin}/blog/${b.page_id}` : 'No URL (page_id missing)';
-      return `${b.title}\t${b.slug}\t${url}`;
-    }).join('\n');
+    // Header row + data rows - tab-separated for horizontal spreadsheet format
+    const headers = ['Name', 'Slug', 'URL'];
+    const rows = selectedData.map((b) => {
+      const url = b.page_id ? `${window.location.origin}/blog/${b.page_id}` : '';
+      return [b.title, b.slug, url].join('\t');
+    });
+    const text = [headers.join('\t'), ...rows].join('\n');
     navigator.clipboard.writeText(text);
-    toast({ title: `Copied ${selectedData.length} blogs (Title, Slug, URL)` });
+    toast({ title: `Copied ${selectedData.length} blogs` });
   };
 
   const handleBulkActivate = async () => {
