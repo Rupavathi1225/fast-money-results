@@ -355,11 +355,13 @@ const AdminBlogs = () => {
   const handleCopy = () => {
     if (!blogs) return;
     const selectedData = blogs.filter(b => selectedIds.has(b.id));
+    // Include Title, Slug, and URL with page_id
     const text = selectedData.map((b) => {
-      return `${b.title} - ${window.location.origin}/blog/${b.page_id}`;
+      const url = b.page_id ? `${window.location.origin}/blog/${b.page_id}` : 'No URL (page_id missing)';
+      return `${b.title}\t${b.slug}\t${url}`;
     }).join('\n');
     navigator.clipboard.writeText(text);
-    toast({ title: "Copied to clipboard" });
+    toast({ title: `Copied ${selectedData.length} blogs (Title, Slug, URL)` });
   };
 
   const handleBulkActivate = async () => {
