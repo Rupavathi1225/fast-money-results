@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult, PrelanderSettings } from "@/types/database";
-import { trackClick } from "@/lib/tracking";
+import { trackClick, getIpInfo, generateRandomToken } from "@/lib/tracking";
 
 const LinkRedirect = () => {
   const { linkId } = useParams();
@@ -15,6 +15,28 @@ const LinkRedirect = () => {
     handleRedirect();
   }, [linkId, resultId]);
 
+  const checkCountryMatch = (countryPermissions: string[] | null, userCountry: string): boolean => {
+    // If no country permissions set or empty, allow all
+    if (!countryPermissions || countryPermissions.length === 0) {
+      return true;
+    }
+    
+    // If "ALL" is in permissions, allow all countries
+    if (countryPermissions.includes('ALL')) {
+      return true;
+    }
+    
+    // Check if user's country matches any allowed country
+    // countryPermissions might contain country codes (US, IN) or full names
+    const userCountryUpper = userCountry.toUpperCase();
+    return countryPermissions.some(permission => {
+      const permUpper = permission.toUpperCase().trim();
+      return permUpper === userCountryUpper || 
+             userCountry.toUpperCase().includes(permUpper) ||
+             permUpper.includes(userCountryUpper);
+    });
+  };
+
   const handleRedirect = async () => {
     if (!resultId) {
       setError('Invalid link');
@@ -23,8 +45,9 @@ const LinkRedirect = () => {
     }
 
     try {
-      // Get the web result and prelander settings
-      const [resultRes, prelanderRes] = await Promise.all([
+      // Get user's country and web result data in parallel
+      const [ipInfo, resultRes, prelanderRes] = await Promise.all([
+        getIpInfo(),
         supabase
           .from('web_results')
           .select('*')
@@ -46,18 +69,27 @@ const LinkRedirect = () => {
 
       const webResult = resultRes.data as WebResult;
       const prelander = prelanderRes.data as PrelanderSettings | null;
+      const userCountry = ipInfo.country;
 
       // Track the click first
       await trackClick(parseInt(linkId || '0'), resultId, document.referrer);
 
-      // Check if prelander is enabled - redirect to prelander page
-      if (prelander && prelander.is_enabled) {
-        window.location.href = `/prelander?rid=${resultId}`;
-        return;
-      }
+      // Check if user's country matches the web result's country permissions
+      const countryMatches = checkCountryMatch(webResult.country_permissions, userCountry);
 
-      // No prelander, redirect directly to original link
-      window.location.href = webResult.original_link;
+      if (countryMatches) {
+        // Country matches - check for prelander first
+        if (prelander && prelander.is_enabled) {
+          window.location.href = `/prelander?rid=${resultId}`;
+          return;
+        }
+        // No prelander, redirect directly to original link
+        window.location.href = webResult.original_link;
+      } else {
+        // Country mismatch - redirect to /q page (landing2) for fallback handling
+        const token = generateRandomToken();
+        window.location.href = `/q?t=${token}`;
+      }
     } catch (error) {
       console.error('Error in redirect:', error);
       setError('An error occurred');
