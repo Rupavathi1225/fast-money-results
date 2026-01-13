@@ -496,73 +496,70 @@ const AdminWebResults = () => {
     <AdminLayout title="Web Results Editor">
       <div className="space-y-6">
         {/* Blog Filter Section */}
-        <div className="admin-card border-2 border-primary/30">
-          <h3 className="text-lg font-semibold text-primary mb-4">Step 1: Select Blog & Related Search</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Filter by Blog</Label>
-              <Select
-                value={selectedBlogFilter}
-                onValueChange={(value) => {
-                  setSelectedBlogFilter(value);
-                  setSelectedRelatedSearchFilter('all');
-                  setSelectedRelatedSearch('');
-                }}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select blog to filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Blogs</SelectItem>
-                  <SelectItem value="none">Landing Page Only (No Blog)</SelectItem>
-                  {blogs.map((blog) => (
-                    <SelectItem key={blog.id} value={blog.id}>
-                      {blog.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Filter by Related Search</Label>
-              <Select
-                value={selectedRelatedSearchFilter}
-                onValueChange={(value) => {
-                  setSelectedRelatedSearchFilter(value);
-                  if (value !== 'all') {
-                    const search = relatedSearches.find(s => s.id === value);
-                    if (search) {
-                      setSelectedPage(search.web_result_page);
-                      setFormData(prev => ({ ...prev, web_result_page: search.web_result_page }));
-                      // Sync with AI Generator dropdown
-                      setSelectedRelatedSearch(value);
-                    }
-                  } else {
-                    setSelectedRelatedSearch('');
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>Filter by Blog</Label>
+            <Select
+              value={selectedBlogFilter}
+              onValueChange={(value) => {
+                setSelectedBlogFilter(value);
+                setSelectedRelatedSearchFilter('all');
+                setSelectedRelatedSearch('');
+              }}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select blog to filter" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Blogs</SelectItem>
+                <SelectItem value="none">Landing Page Only (No Blog)</SelectItem>
+                {blogs.map((blog) => (
+                  <SelectItem key={blog.id} value={blog.id}>
+                    {blog.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Filter by Related Search</Label>
+            <Select
+              value={selectedRelatedSearchFilter}
+              onValueChange={(value) => {
+                setSelectedRelatedSearchFilter(value);
+                if (value !== 'all') {
+                  const search = relatedSearches.find(s => s.id === value);
+                  if (search) {
+                    setSelectedPage(search.web_result_page);
+                    setFormData(prev => ({ ...prev, web_result_page: search.web_result_page }));
+                    // Sync with AI Generator dropdown
+                    setSelectedRelatedSearch(value);
                   }
-                }}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select related search" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Related Searches</SelectItem>
-                  {getFilteredRelatedSearches().map((search) => {
-                    const linkedBlog = blogs.find(b => b.id === search.blog_id);
-                    return (
-                      <SelectItem key={search.id} value={search.id}>
-                        {search.title} (wr={search.web_result_page}){linkedBlog && ` [${linkedBlog.title}]`}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
+                } else {
+                  setSelectedRelatedSearch('');
+                }
+              }}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select related search" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Related Searches</SelectItem>
+                {getFilteredRelatedSearches().map((search) => {
+                  const linkedBlog = blogs.find(b => b.id === search.blog_id);
+                  return (
+                    <SelectItem key={search.id} value={search.id}>
+                      {search.title} (wr={search.web_result_page}){linkedBlog && ` [${linkedBlog.title}]`}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         {/* AI Generator Section */}
-        <div className="admin-card border-2 border-amber-500/30">
+        <div className="space-y-4">
           <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
             <Sparkles className="w-5 h-5" />
             AI Web Results Generator
