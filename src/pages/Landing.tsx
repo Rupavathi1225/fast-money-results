@@ -101,16 +101,16 @@ const Landing = () => {
             Related Searches
           </h2>
 
-          <div className="flex flex-col gap-3 max-w-2xl mx-auto">
+          <div className="flex flex-col gap-1 max-w-2xl mx-auto">
             {searches.map((search, index) => (
               <button
                 key={search.id}
                 onClick={() => handleSearchClick(search)}
-                className="flex items-center justify-between px-5 py-4 border border-border hover:border-primary/50 rounded-md text-primary hover:bg-secondary/30 transition-all duration-200 group w-full"
+                className="flex items-center justify-between px-4 py-3 text-primary hover:text-primary/80 hover:bg-primary/10 rounded transition-all duration-200 group w-full"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <span className="text-base">{search.search_text}</span>
-                <ChevronRight className="w-5 h-5 text-primary group-hover:translate-x-1 transition-transform" />
+                <ChevronRight className="w-5 h-5 text-primary opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
               </button>
             ))}
           </div>
