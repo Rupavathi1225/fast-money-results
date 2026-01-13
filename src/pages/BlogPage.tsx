@@ -147,15 +147,15 @@ const BlogPage = () => {
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider text-center mb-6">
               Related Searches
             </h2>
-            <div className="flex flex-col gap-3 max-w-2xl mx-auto">
+            <div className="flex flex-col gap-1 max-w-2xl mx-auto">
               {relatedSearches.map((search) => (
                 <Link
                   key={search.id}
                   to={`/wr/${search.web_result_page}?from=${pageId}`}
-                  className="flex items-center justify-between px-5 py-4 border border-border hover:border-primary/50 rounded-md text-primary hover:bg-secondary/30 transition-all duration-200 group"
+                  className="flex items-center justify-between px-4 py-3 text-primary hover:text-primary/80 hover:bg-primary/10 rounded transition-all duration-200 group"
                 >
                   <span className="text-base">{search.title}</span>
-                  <ChevronRight className="w-5 h-5 text-primary group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight className="w-5 h-5 text-primary opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </Link>
               ))}
             </div>
