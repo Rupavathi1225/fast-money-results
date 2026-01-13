@@ -286,36 +286,31 @@ const AdminCategories = () => {
     <AdminLayout title="Categories Editor">
       <div className="space-y-6">
         {/* Blog Filter */}
-        <div className="admin-card border-2 border-primary/30">
-          <h3 className="text-lg font-semibold text-primary mb-4">Step 1: Select Blog</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Filter by Blog</Label>
-              <Select
-                value={selectedBlogFilter}
-                onValueChange={(value) => {
-                  setSelectedBlogFilter(value);
-                  // Auto-set blog_id in form when creating new
-                  if (value !== 'all' && value !== 'none' && !editingId) {
-                    setFormData(prev => ({ ...prev, blog_id: value }));
-                  }
-                }}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select blog to filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Related Searches</SelectItem>
-                  <SelectItem value="none">Landing Page Only (No Blog)</SelectItem>
-                  {blogs.map((blog) => (
-                    <SelectItem key={blog.id} value={blog.id}>
-                      {blog.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        <div className="max-w-md">
+          <Label>Filter by Blog</Label>
+          <Select
+            value={selectedBlogFilter}
+            onValueChange={(value) => {
+              setSelectedBlogFilter(value);
+              // Auto-set blog_id in form when creating new
+              if (value !== 'all' && value !== 'none' && !editingId) {
+                setFormData(prev => ({ ...prev, blog_id: value }));
+              }
+            }}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Select blog to filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Related Searches</SelectItem>
+              <SelectItem value="none">Landing Page Only (No Blog)</SelectItem>
+              {blogs.map((blog) => (
+                <SelectItem key={blog.id} value={blog.id}>
+                  {blog.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Search */}
