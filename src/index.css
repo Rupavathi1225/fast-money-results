@@ -6,11 +6,11 @@
 
 @layer base {
   :root {
-    /* Dark teal theme matching reference */
-    --background: 180 43% 8%;
+    /* Dark black theme */
+    --background: 0 0% 4%;
     --foreground: 60 9% 87%;
 
-    --card: 180 43% 10%;
+    --card: 0 0% 7%;
     --card-foreground: 60 9% 87%;
 
     --popover: 180 43% 10%;
