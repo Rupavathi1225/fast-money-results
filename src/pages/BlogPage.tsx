@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 
 interface Blog {
   id: string;
@@ -25,8 +25,24 @@ interface RelatedSearch {
   blog_id: string | null;
 }
 
+interface LandingSettings {
+  site_name: string;
+}
+
 const BlogPage = () => {
   const { pageId } = useParams<{ pageId: string }>();
+
+  const { data: settings } = useQuery({
+    queryKey: ["landing-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("landing_settings")
+        .select("site_name")
+        .single();
+      if (error) throw error;
+      return data as LandingSettings;
+    },
+  });
 
   const { data: blog, isLoading, error } = useQuery({
     queryKey: ["blog", pageId],
@@ -52,7 +68,7 @@ const BlogPage = () => {
         .eq("blog_id", blog!.id)
         .eq("is_active", true)
         .order("display_order", { ascending: true })
-        .limit(4); // Only show max 4 related searches on blog page
+        .limit(4);
       if (error) throw error;
       return data as RelatedSearch[];
     },
@@ -84,15 +100,23 @@ const BlogPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Link
-          to="/landing"
-          className="inline-flex items-center text-muted-foreground hover:text-foreground mb-8"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Home
-        </Link>
+      {/* Header */}
+      <header className="py-4">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <Link
+            to="/landing"
+            className="inline-flex items-center gap-3 text-primary hover:text-primary/80 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-xl font-semibold">
+              {settings?.site_name || 'FastMoney'}
+            </span>
+          </Link>
+        </div>
+      </header>
 
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8 max-w-3xl">
         <article>
           {blog.featured_image_url && (
             <img
@@ -103,44 +127,41 @@ const BlogPage = () => {
           )}
 
           <header className="mb-10">
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-6">{blog.title}</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">
+              {blog.title}
+            </h1>
           </header>
 
           <div className="prose prose-invert max-w-none">
             {blog.content.split("\n").map((paragraph, idx) => (
-              <p key={idx} className="text-foreground/90 mb-4 leading-relaxed">
+              <p key={idx} className="text-muted-foreground mb-4 leading-relaxed text-base">
                 {paragraph}
               </p>
             ))}
           </div>
         </article>
 
-        {/* Related Searches Section - Vertical Layout */}
+        {/* Related Searches Section */}
         {relatedSearches && relatedSearches.length > 0 && (
-          <div className="mt-12 pt-8 border-t border-border">
-            <div className="flex items-center gap-2 mb-6">
-              <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <h2 className="text-xl font-semibold text-foreground">Related Searches</h2>
-            </div>
-            <div className="flex flex-col gap-2 max-w-lg">
+          <div className="mt-16 pt-8 border-t border-border">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider text-center mb-6">
+              Related Searches
+            </h2>
+            <div className="flex flex-col gap-3 max-w-2xl mx-auto">
               {relatedSearches.map((search) => (
                 <Link
                   key={search.id}
                   to={`/wr/${search.web_result_page}?from=${pageId}`}
-                  className="flex items-center justify-between px-4 py-3 border border-border/60 hover:border-primary/50 rounded-md text-primary hover:text-primary/80 transition-all duration-200 group"
+                  className="flex items-center justify-between px-5 py-4 border border-border hover:border-primary/50 rounded-md text-primary hover:bg-secondary/30 transition-all duration-200 group"
                 >
-                  <span className="text-sm">{search.title}</span>
-                  <svg className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                  <span className="text-base">{search.title}</span>
+                  <ChevronRight className="w-5 h-5 text-primary group-hover:translate-x-1 transition-transform" />
                 </Link>
               ))}
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

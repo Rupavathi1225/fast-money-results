@@ -2,10 +2,10 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { WebResult, LandingSettings } from "@/types/database";
-import { trackClick, generateRandomToken, getIpInfo, generateSessionId, getDeviceType } from "@/lib/tracking";
+import { trackClick, generateRandomToken, getIpInfo } from "@/lib/tracking";
 import { getNextAllowedFallback } from "@/lib/fallbackAccess";
-import { ArrowLeft, ExternalLink } from "lucide-react";
-// Generate random token for URL
+import { ArrowLeft, ExternalLink, ChevronRight } from "lucide-react";
+
 const generateRandomWord = () => {
   const words = ["quick", "fast", "smart", "easy", "safe", "best", "top", "new", "pro", "max"];
   return words[Math.floor(Math.random() * words.length)] + Math.random().toString(36).substring(2, 6);
@@ -23,6 +23,7 @@ interface Blog {
   id: string;
   title: string;
 }
+
 interface FallbackUrl {
   id: string;
   url: string;
@@ -33,8 +34,8 @@ interface FallbackUrl {
 const WebResults = () => {
   const { wrPage } = useParams();
   const [searchParams] = useSearchParams();
-  const fromBlog = searchParams.get("from"); // e.g., blog slug
-  const resultId = searchParams.get("result_id"); // specific web result to show
+  const fromBlog = searchParams.get("from");
+  const resultId = searchParams.get("result_id");
   const pageNumber = parseInt(wrPage || "1");
   const [results, setResults] = useState<WebResult[]>([]);
   const [settings, setSettings] = useState<LandingSettings | null>(null);
@@ -52,7 +53,6 @@ const WebResults = () => {
     getUserCountry();
   }, [pageNumber, resultId]);
 
-
   useEffect(() => {
     if (blog) {
       document.title = `${blog.title} - Web Results`;
@@ -66,7 +66,6 @@ const WebResults = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // If result_id is provided, fetch only that specific result
       let resultsQuery = supabase
         .from('web_results')
         .select('*')
@@ -102,11 +101,9 @@ const WebResults = () => {
       if (resultsRes.data) {
         setResults(resultsRes.data as WebResult[]);
         
-        // If we have a single result, fetch related search and blog for that result
         if (resultId && resultsRes.data.length > 0) {
           const webResult = resultsRes.data[0] as WebResult;
           
-          // Fetch related search for this web result's page
           const { data: relatedSearchData } = await supabase
             .from('related_searches')
             .select('id, title, search_text, web_result_page, blog_id')
@@ -117,7 +114,6 @@ const WebResults = () => {
           if (relatedSearchData) {
             setRelatedSearch(relatedSearchData as RelatedSearch);
             
-            // Fetch blog from the related search's blog_id
             if (relatedSearchData.blog_id) {
               const { data: blogData } = await supabase
                 .from('blogs')
@@ -133,7 +129,6 @@ const WebResults = () => {
       }
       if (!resultId && relatedSearchRes.data) {
         setRelatedSearch(relatedSearchRes.data as RelatedSearch);
-        // Also fetch blog from related search if not already fetched
         if (relatedSearchRes.data.blog_id) {
           const { data: blogData } = await supabase
             .from('blogs')
@@ -162,7 +157,6 @@ const WebResults = () => {
   };
 
   const generateMaskedLink = (result: WebResult, index: number) => {
-    // Generate fully random parameters
     const p = generateRandomWord();
     const n = generateRandomToken();
     const c = generateRandomWord();
@@ -171,9 +165,6 @@ const WebResults = () => {
 
   const handleResultClick = async (result: WebResult, index: number) => {
     await trackClick(index + 1, result.id, window.location.href);
-
-    // Always redirect to /q page (landing2) - the auto-redirect setting only controls
-    // whether the 5-second timer triggers on that page
     const randomToken = generateRandomToken();
     window.location.href = `/q?t=${randomToken}`;
   };
@@ -206,7 +197,6 @@ const WebResults = () => {
     );
   };
 
-  // Generate random display URL for masking
   const getDisplayUrl = (index: number) => {
     const siteName = settings?.site_name?.toLowerCase() || 'fastmoney';
     return `${siteName}/${generateRandomWord()}/${generateRandomToken().substring(0, 4)}`;
@@ -223,148 +213,144 @@ const WebResults = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border/50 py-4">
-        <div className="container mx-auto px-4 flex items-center justify-between">
-          <Link to="/landing" className="text-2xl font-display font-bold text-primary">
-            {settings?.site_name || 'FastMoney'}
-          </Link>
-          <Link 
-            to={fromBlog ? `/blog/${fromBlog}` : "/landing"} 
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+      <header className="py-4">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <Link
+            to={fromBlog ? `/blog/${fromBlog}` : "/landing"}
+            className="inline-flex items-center gap-3 text-primary hover:text-primary/80 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
-            {fromBlog ? 'Back to Blog' : 'Back to Search'}
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-xl font-semibold">
+              {settings?.site_name || 'FastMoney'}
+            </span>
           </Link>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          {/* Single Result Detail View */}
-          {resultId && results.length > 0 && (
-            <div className="mb-8 p-6 bg-secondary/30 rounded-lg border border-border/30">
-              <div className="space-y-3">
+      <main className="container mx-auto px-4 py-8 max-w-3xl">
+        {/* Single Result Detail View */}
+        {resultId && results.length > 0 && (
+          <div className="mb-8 p-6 bg-secondary/30 rounded-lg border border-border/30">
+            <div className="space-y-3">
+              <div>
+                <span className="text-xs text-muted-foreground">Title:</span>
+                <p className="text-lg font-semibold text-foreground">{results[0].title}</p>
+              </div>
+              {blog && (
                 <div>
-                  <span className="text-xs text-muted-foreground">Title:</span>
-                  <p className="text-lg font-semibold text-foreground">{results[0].title}</p>
+                  <span className="text-xs text-muted-foreground">Blog:</span>
+                  <p className="text-primary">{blog.title}</p>
                 </div>
-                {blog && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">Blog:</span>
-                    <p className="text-primary">{blog.title}</p>
-                  </div>
-                )}
-                {relatedSearch && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">Related Search:</span>
-                    <p className="text-foreground">{relatedSearch.title}</p>
-                  </div>
-                )}
+              )}
+              {relatedSearch && (
                 <div>
-                  <span className="text-xs text-muted-foreground">Original Link:</span>
-                  <p className="text-primary break-all">{results[0].original_link}</p>
+                  <span className="text-xs text-muted-foreground">Related Search:</span>
+                  <p className="text-foreground">{relatedSearch.title}</p>
                 </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">Date:</span>
-                  <p className="text-foreground">
-                    {new Date(results[0].created_at).toLocaleDateString('en-GB', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric'
-                    }).replace(/\//g, '/')}
-                  </p>
-                </div>
+              )}
+              <div>
+                <span className="text-xs text-muted-foreground">Original Link:</span>
+                <p className="text-primary break-all">{results[0].original_link}</p>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground">Date:</span>
+                <p className="text-foreground">
+                  {new Date(results[0].created_at).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  }).replace(/\//g, '/')}
+                </p>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {results.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No results found for this page.</p>
-            </div>
-          ) : (
-            <>
-              {/* Sponsored Results Section */}
-              {results.filter(r => r.is_sponsored).length > 0 && (
-                <div className="bg-[#1a1f2e] rounded-lg p-6 mb-8 border border-border/20">
-                  {results.filter(r => r.is_sponsored).map((result, idx) => {
+        {results.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No results found for this page.</p>
+          </div>
+        ) : (
+          <>
+            {/* Sponsored Results Section */}
+            {results.filter(r => r.is_sponsored).length > 0 && (
+              <div className="bg-secondary/30 rounded-lg p-6 mb-8 border border-border/30">
+                {results.filter(r => r.is_sponsored).map((result, idx) => {
+                  const originalIndex = results.findIndex(r => r.id === result.id);
+                  const displayUrl = getDisplayUrl(originalIndex);
+                  return (
+                    <div
+                      key={result.id}
+                      className={`${idx > 0 ? 'mt-8 pt-8 border-t border-border/20' : ''}`}
+                    >
+                      <span className="text-xs text-muted-foreground bg-muted/30 px-2 py-0.5 rounded">Sponsored</span>
+                      <h3 
+                        onClick={() => handleResultClick(result, originalIndex)}
+                        className="text-lg font-medium text-primary hover:underline cursor-pointer underline-offset-2 mt-2"
+                      >
+                        {result.title}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                        <span>{displayUrl}</span>
+                      </div>
+                      {result.description && (
+                        <p className="text-sm text-muted-foreground/80 mt-2 italic">
+                          {result.description}
+                        </p>
+                      )}
+                      <button
+                        onClick={() => handleResultClick(result, originalIndex)}
+                        className="mt-4 px-6 py-2.5 bg-primary text-primary-foreground font-medium rounded hover:bg-primary/90 transition-colors flex items-center gap-2"
+                      >
+                        <ChevronRight className="w-4 h-4" /> Visit Website
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Regular Web Results */}
+            {results.filter(r => !r.is_sponsored).length > 0 && (
+              <>
+                <p className="text-sm text-muted-foreground mb-4">Web Results</p>
+                <div className="space-y-6">
+                  {results.filter(r => !r.is_sponsored).map((result) => {
                     const originalIndex = results.findIndex(r => r.id === result.id);
                     const displayUrl = getDisplayUrl(originalIndex);
                     return (
                       <div
                         key={result.id}
-                        className={`${idx > 0 ? 'mt-8 pt-8 border-t border-border/20' : ''}`}
+                        onClick={() => handleResultClick(result, originalIndex)}
+                        className="flex items-start gap-4 py-3 cursor-pointer group animate-fade-in"
+                        style={{ animationDelay: `${originalIndex * 0.05}s` }}
                       >
-                        <span className="text-xs text-muted-foreground bg-muted/30 px-2 py-0.5 rounded">Sponsored</span>
-                        <h3 
-                          onClick={() => handleResultClick(result, originalIndex)}
-                          className="text-lg font-medium text-[#8ab4f8] hover:underline cursor-pointer underline-offset-2 mt-2"
-                        >
-                          {result.title}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                          <span>{displayUrl}</span>
+                        <div className="flex-shrink-0">
+                          {getLogoDisplay(result)}
                         </div>
-                        {result.description && (
-                          <p className="text-sm text-muted-foreground/80 mt-2 italic">
-                            {result.description}
-                          </p>
-                        )}
-                        <button
-                          onClick={() => handleResultClick(result, originalIndex)}
-                          className="mt-4 px-6 py-2.5 bg-[#2563eb] text-white font-medium rounded hover:bg-[#1d4ed8] transition-colors flex items-center gap-2"
-                        >
-                          <span>➤</span> Visit Website
-                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
+                            <span>{displayUrl}</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </div>
+                          <h3 className="text-lg font-medium text-primary group-hover:underline">
+                            {result.title}
+                          </h3>
+                          {result.description && (
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                              {result.description}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-              )}
-
-              {/* Regular Web Results */}
-              {results.filter(r => !r.is_sponsored).length > 0 && (
-                <>
-                  <p className="text-sm text-muted-foreground mb-4">Web Results</p>
-                  <div className="space-y-6">
-                    {results.filter(r => !r.is_sponsored).map((result) => {
-                      const originalIndex = results.findIndex(r => r.id === result.id);
-                      const displayUrl = getDisplayUrl(originalIndex);
-                      return (
-                        <div
-                          key={result.id}
-                          onClick={() => handleResultClick(result, originalIndex)}
-                          className="flex items-start gap-4 py-3 cursor-pointer group animate-fade-in"
-                          style={{ animationDelay: `${originalIndex * 0.05}s` }}
-                        >
-                          <div className="flex-shrink-0">
-                            {getLogoDisplay(result)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
-                              <span>{displayUrl}</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </div>
-                            <h3 className="text-lg font-medium text-primary group-hover:underline">
-                              {result.title}
-                            </h3>
-                            {result.description && (
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                {result.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </>
-          )}
-
-        </div>
+              </>
+            )}
+          </>
+        )}
       </main>
     </div>
   );
